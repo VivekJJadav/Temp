@@ -43,7 +43,7 @@ REV_MIN_L, REV_MAX_L = 3, 12
 ADD_MIN_DIGITS, ADD_MAX_DIGITS = 1, 3
 COPY_MIN_L, COPY_MAX_L = 2, 6
 COPY_MIN_REPEAT, COPY_MAX_REPEAT = 2, 4
-REL_MIN_HOPS, REL_MAX_HOPS = 1, 2
+REL_MIN_HOPS, REL_MAX_HOPS = 1, 4  # Increased max for more variety with canonical IDs
 
 SEPARATOR = " | "
 TOKEN_SEP = " "
@@ -100,14 +100,41 @@ def gen_copy_example(min_l=COPY_MIN_L, max_l=COPY_MAX_L, min_rep=COPY_MIN_REPEAT
     return f"[copy] {inp}{SEPARATOR}{out}"
 
 def gen_relations_example(min_hops=REL_MIN_HOPS, max_hops=REL_MAX_HOPS) -> str:
-    entities = [f"E{i}" for i in range(1, 1000)]
+    """
+    Generate a relations/ancestor task with CANONICAL entity IDs.
+    Uses <E0>, <E1>, <E2>, etc. for learnable copying.
+    Added variety via: different relation words, question types, and intermediate queries.
+    """
     hops = random.randint(min_hops, max_hops)
-    chosen = random.sample(entities, hops + 1)
+    entities = [f"<E{i}>" for i in range(hops + 1)]
+    
+    # Variety 1: Different relation words
+    relation_words = ["is parent of", "is ancestor of", "begat", "created", "spawned"]
+    relation = random.choice(relation_words)
+    
     lines = []
     for i in range(hops):
-        lines.append(f"{chosen[i]} is parent of {chosen[i+1]}.")
-    question = f"Who is the ancestor {hops} of {chosen[-1]}?"
-    answer = chosen[0]
+        lines.append(f"{entities[i]} {relation} {entities[i+1]}.")
+    
+    # Variety 2: Different question types
+    question_types = [
+        (f"Who is the ancestor {hops} of {entities[-1]}?", entities[0]),
+        (f"What is the root ancestor of {entities[-1]}?", entities[0]),
+        (f"Who started the chain ending at {entities[-1]}?", entities[0]),
+        (f"Find the origin of {entities[-1]}.", entities[0]),
+    ]
+    
+    # Variety 3: Sometimes ask about intermediate entities (if hops > 1)
+    if hops > 1:
+        mid_idx = random.randint(1, hops - 1)
+        question_types.append(
+            (f"Who is the parent of {entities[mid_idx]}?", entities[mid_idx - 1])
+        )
+        question_types.append(
+            (f"Who is the child of {entities[mid_idx]}?", entities[mid_idx + 1])
+        )
+    
+    question, answer = random.choice(question_types)
     inp = " ".join(lines) + " " + question
     return f"[rel] {inp}{SEPARATOR}{answer}"
 
@@ -295,16 +322,7 @@ def equalize_stratified(texts, labels, target_size, allow_upsample=True):
             pick_idxs = random.choices(range(len(final_texts)), k=needed)
             final_texts += [final_texts[i] for i in pick_idxs]
             final_labels += [final_labels[i] for i in pick_idxs]
-        else:
-            # conservative: repeat first items across tasks to fill (rare when TARGET_SIZE=min unique)
-            while len(final_texts) < target_size:
-                for tsk, arr in by_task.items():
-                    if not arr: 
-                        continue
-                    final_texts.append(arr[0])
-                    final_labels.append(tsk)
-                    if len(final_texts) >= target_size:
-                        break
+        # else: accept fewer items (no duplicates allowed for dedup)
 
     combined = list(zip(final_texts, final_labels))
     random.shuffle(combined)
@@ -432,10 +450,17 @@ def produce_and_save(total_examples=NUM_TOTAL_EXAMPLES):
         return None, None
 
     # Generate until each task meets target_per_task
+    # NOTE: Skip relations since canonical IDs have limited unique combinations
     for task_name, desired in target_per_task.items():
         cur = len(dedup_by_task.get(task_name, []))
         if cur >= desired:
             continue
+        
+        # Special handling for relations: use what we have (canonical IDs have limited unique combos)
+        if task_name == "relations":
+            print(f"[Dedup-regen] Relations: using {cur} unique examples (canonical IDs limit uniqueness)")
+            continue
+        
         need = desired - cur
         print(f"[Dedup-regen] Generating {need} unique examples for task {task_name} (have {cur}, want {desired})")
         for _ in range(need):
@@ -450,9 +475,18 @@ def produce_and_save(total_examples=NUM_TOTAL_EXAMPLES):
     final_dedup_labels = []
     for task_name in MIX.keys():
         items = dedup_by_task.get(task_name, [])
-        if len(items) < target_per_task[task_name]:
-            raise RuntimeError(f"Not enough unique items for task {task_name} after regen")
-        chosen = items[:target_per_task[task_name]]
+        target = target_per_task[task_name]
+        
+        # Special handling for relations: use all available (canonical IDs limit uniqueness)
+        if task_name == "relations":
+            chosen = items  # Use all unique relations we have
+            if len(chosen) < target:
+                print(f"[Dedup] Relations: using {len(chosen)}/{target} (canonical IDs limit uniqueness)")
+        else:
+            if len(items) < target:
+                raise RuntimeError(f"Not enough unique items for task {task_name} after regen")
+            chosen = items[:target]
+        
         final_dedup_texts.extend(chosen)
         final_dedup_labels.extend([task_name] * len(chosen))
 

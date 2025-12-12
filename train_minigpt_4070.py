@@ -181,7 +181,60 @@ class PickleDataset(Dataset):
         if len(seq) > self.max_len:
             seq = seq[-self.max_len:]
         return {"ids": torch.tensor(seq, dtype=torch.long),
-                "raw": self.raw[idx] if self.raw is not None else None}
+                "raw": self.raw[idx] if self.raw is not None else None,
+                "length": len(self.encoded[idx])}  # Original length for curriculum
+
+
+class CurriculumDataset(Dataset):
+    """
+    Wrapper dataset that filters examples by sequence length for curriculum learning.
+    Progressively increase max_curriculum_len to include longer examples.
+    """
+    def __init__(self, base_dataset: PickleDataset, max_curriculum_len: int):
+        self.base_dataset = base_dataset
+        self.max_curriculum_len = max_curriculum_len
+        # Build index of examples that fit within curriculum length
+        self._rebuild_indices()
+    
+    def _rebuild_indices(self):
+        """Rebuild the list of valid indices based on current max_curriculum_len."""
+        self.valid_indices = []
+        for i in range(len(self.base_dataset)):
+            orig_len = len(self.base_dataset.encoded[i])
+            if orig_len <= self.max_curriculum_len:
+                self.valid_indices.append(i)
+        # Always include at least some examples (fallback to shortest)
+        if len(self.valid_indices) == 0:
+            lengths = [(i, len(self.base_dataset.encoded[i])) for i in range(len(self.base_dataset))]
+            lengths.sort(key=lambda x: x[1])
+            # Take shortest 10% as minimum
+            min_count = max(1, len(lengths) // 10)
+            self.valid_indices = [i for i, _ in lengths[:min_count]]
+    
+    def set_curriculum_length(self, new_max_len: int):
+        """Update the curriculum length and rebuild indices."""
+        self.max_curriculum_len = new_max_len
+        self._rebuild_indices()
+    
+    def __len__(self):
+        return len(self.valid_indices)
+    
+    def __getitem__(self, idx):
+        real_idx = self.valid_indices[idx]
+        return self.base_dataset[real_idx]
+    
+    def get_length_stats(self):
+        """Return stats about current curriculum subset."""
+        if not self.valid_indices:
+            return {"count": 0, "min_len": 0, "max_len": 0, "avg_len": 0}
+        lengths = [len(self.base_dataset.encoded[i]) for i in self.valid_indices]
+        return {
+            "count": len(lengths),
+            "min_len": min(lengths),
+            "max_len": max(lengths),
+            "avg_len": sum(lengths) / len(lengths)
+        }
+
 
 def collate_fn(batch:List[dict], pad_id:int, max_len:int):
     # batch: list of {"ids": tensor([...]), "raw": str}
@@ -461,6 +514,10 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
     exact_matches = 0
     total_examples = 0
     
+    # Token accuracy tracking
+    correct_tokens = 0
+    total_tokens = 0
+    
     # Per-task accuracy tracking
     task_correct = defaultdict(int)
     task_total = defaultdict(int)
@@ -487,6 +544,17 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
             
             # Decode generated text
             generated_str = decode_ids_to_text(generated_ids, itos).strip()
+            
+            # Token accuracy: compare character by character
+            target_chars = list(target_str)
+            generated_chars = list(generated_str)
+            min_len = min(len(target_chars), len(generated_chars))
+            for j in range(min_len):
+                total_tokens += 1
+                if target_chars[j] == generated_chars[j]:
+                    correct_tokens += 1
+            # Count extra/missing tokens as errors
+            total_tokens += abs(len(target_chars) - len(generated_chars))
             
             # Compare with target
             task_type = extract_task_type(raw)
@@ -517,6 +585,7 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
             print(f"    Generated: '{s['generated']}'")
     
     exact_match_rate = (exact_matches / total_examples) if total_examples > 0 else 0.0
+    token_accuracy = (correct_tokens / total_tokens) if total_tokens > 0 else 0.0
     
     # Compute per-task accuracy
     task_accuracy = {}
@@ -524,7 +593,7 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
         if task_total[task] > 0:
             task_accuracy[task] = task_correct[task] / task_total[task]
     
-    return exact_match_rate, task_accuracy
+    return exact_match_rate, token_accuracy, task_accuracy
 
 # ---------- Argument parsing ----------
 def parse_args():
@@ -554,6 +623,11 @@ def parse_args():
     p.add_argument("--profile_memory", action="store_true", help="log GPU memory usage each epoch")
     p.add_argument("--show_samples", action="store_true", help="show sample predictions during evaluation")
     p.add_argument("--autoreg_eval", action="store_true", help="use autoregressive generation for evaluation (slower but more realistic)")
+    # Curriculum learning
+    p.add_argument("--curriculum", action="store_true", help="enable curriculum learning (train on short sequences first)")
+    p.add_argument("--curriculum_start", type=int, default=20, help="starting max sequence length for curriculum")
+    p.add_argument("--curriculum_end", type=int, default=None, help="ending max sequence length (defaults to --max_len)")
+    p.add_argument("--curriculum_epochs", type=int, default=5, help="epochs to transition from start to end length")
     args = p.parse_args()
     if args.d_ff is None:
         args.d_ff = args.d_model * 4
@@ -585,10 +659,25 @@ def main():
     args.vocab_size = vocab_size
 
     # dataset & loader
-    dataset = PickleDataset(args.data, stoi, args.max_len)
+    base_dataset = PickleDataset(args.data, stoi, args.max_len)
+    print(f"Training dataset loaded: {len(base_dataset)} examples")
+    
+    # Curriculum learning setup
+    if args.curriculum:
+        if args.curriculum_end is None:
+            args.curriculum_end = args.max_len
+        # Start with short sequences
+        curriculum_dataset = CurriculumDataset(base_dataset, args.curriculum_start)
+        dataset = curriculum_dataset
+        stats = curriculum_dataset.get_length_stats()
+        print(f"[Curriculum] Starting with max_len={args.curriculum_start}, "
+              f"using {stats['count']} examples (avg_len={stats['avg_len']:.1f})")
+    else:
+        dataset = base_dataset
+        curriculum_dataset = None
+    
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True,
                             collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len), num_workers=2, pin_memory=True)
-    print(f"Training dataset loaded: {len(dataset)} examples")
 
     # Validation data: explicit path > auto-detect > None
     val_loader = None
@@ -633,6 +722,27 @@ def main():
 
     for epoch in range(1, args.epochs+1):
         start = time.time()
+        
+        # Curriculum learning: progressively increase max sequence length
+        if args.curriculum and curriculum_dataset is not None:
+            # Linear interpolation from curriculum_start to curriculum_end
+            progress = min(1.0, (epoch - 1) / max(1, args.curriculum_epochs - 1))
+            new_max_len = int(args.curriculum_start + progress * (args.curriculum_end - args.curriculum_start))
+            
+            old_count = len(curriculum_dataset)
+            curriculum_dataset.set_curriculum_length(new_max_len)
+            new_count = len(curriculum_dataset)
+            
+            # Rebuild dataloader if dataset size changed significantly
+            if new_count != old_count:
+                dataloader = DataLoader(curriculum_dataset, batch_size=args.batch_size, shuffle=True,
+                                        collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len), 
+                                        num_workers=2, pin_memory=True)
+            
+            stats = curriculum_dataset.get_length_stats()
+            print(f"[Curriculum] Epoch {epoch}: max_len={new_max_len}, "
+                  f"examples={stats['count']}, avg_len={stats['avg_len']:.1f}")
+        
         train_loss = train_epoch(model, optimizer, scaler, dataloader, device, epoch, args, itos)
         
         # Step scheduler
@@ -664,11 +774,12 @@ def main():
             
             # Optional: Autoregressive evaluation (slower but more realistic)
             if args.autoreg_eval:
-                autoreg_exact, autoreg_task_acc = evaluate_autoregressive(
+                autoreg_exact, autoreg_token_acc, autoreg_task_acc = evaluate_autoregressive(
                     model, val_loader, device, args, stoi, itos
                 )
                 history.setdefault("autoreg_exact", []).append(autoreg_exact)
-                print(f"[Epoch {epoch}] AutoReg exact_match={autoreg_exact:.4f}")
+                history.setdefault("autoreg_token_acc", []).append(autoreg_token_acc)
+                print(f"[Epoch {epoch}] AutoReg exact_match={autoreg_exact:.4f} | token_acc={autoreg_token_acc:.4f}")
                 if autoreg_task_acc:
                     print(f"[Epoch {epoch}] AutoReg per-task:")
                     for task, acc in sorted(autoreg_task_acc.items()):

@@ -1,50 +1,50 @@
 {
   "normal": {
-    "total": 8723,
-    "unique": 8460,
-    "dup_rate": 3.015017769116135,
+    "total": 7060,
+    "unique": 5616,
+    "dup_rate": 20.453257790368273,
     "task_distribution": {
-      "relations": 1746,
-      "sorting": 1744,
-      "reversing": 1744,
-      "addition": 1745,
-      "copying": 1744
+      "relations": 1412,
+      "copying": 1412,
+      "reversing": 1412,
+      "addition": 1412,
+      "sorting": 1412
     }
   },
   "deduplicated": {
-    "total": 8723,
-    "unique": 8723,
+    "total": 5788,
+    "unique": 5788,
     "dup_rate": 0.0,
     "task_distribution": {
-      "addition": 1745,
-      "reversing": 1744,
-      "relations": 1744,
-      "copying": 1744,
-      "sorting": 1746
+      "reversing": 1412,
+      "copying": 1412,
+      "sorting": 1412,
+      "addition": 1412,
+      "relations": 140
     }
   },
   "duplicated": {
-    "total": 8723,
-    "unique": 4561,
-    "dup_rate": 47.712942794910006,
+    "total": 7060,
+    "unique": 3230,
+    "dup_rate": 54.24929178470255,
     "task_distribution": {
-      "addition": 1745,
-      "copying": 1744,
-      "relations": 1744,
-      "reversing": 1745,
-      "sorting": 1745
+      "addition": 1412,
+      "reversing": 1412,
+      "sorting": 1412,
+      "copying": 1412,
+      "relations": 1412
     }
   },
   "validation": {
     "total": 1000,
-    "unique": 996,
-    "dup_rate": 0.40000000000000036,
+    "unique": 903,
+    "dup_rate": 9.699999999999998,
     "task_distribution": {
-      "addition": 208,
-      "sorting": 192,
-      "relations": 186,
-      "reversing": 207,
-      "copying": 207
+      "reversing": 230,
+      "addition": 188,
+      "copying": 200,
+      "relations": 188,
+      "sorting": 194
     }
   },
   "config": {
