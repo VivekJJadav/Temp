@@ -32,7 +32,7 @@ if torch.backends.mps.is_available():
 OUT_DIR = "data/processed"
 os.makedirs(OUT_DIR, exist_ok=True)
 
-NUM_TOTAL_EXAMPLES = 10000  # lower for quick runs; increase later
+NUM_TOTAL_EXAMPLES = 100000  # lower for quick runs; increase later
 TRAIN_RATIO = 0.9
 
 MIX = {"sorting": 0.2, "reversing": 0.2, "addition": 0.2, "copying": 0.2, "relations": 0.2}
@@ -67,16 +67,34 @@ def sha1hex(s: str) -> str:
 # -----------------------
 # Task generators
 # -----------------------
+def gen_random_number() -> str:
+    """Generate a random number: 60% single digit, 30% two digit, 10% three digit."""
+    r = random.random()
+    if r < 0.6:
+        return str(random.randint(0, 9))  # Single digit
+    elif r < 0.9:
+        return str(random.randint(10, 99))  # Two digits
+    else:
+        return str(random.randint(100, 999))  # Three digits
+
 def gen_sort_example(min_l=SORT_MIN_L, max_l=SORT_MAX_L) -> str:
     L = random.randint(min_l, max_l)
-    seq = [str(random.randint(0, 9)) for _ in range(L)]
+    seq = [gen_random_number() for _ in range(L)]
     inp = TOKEN_SEP.join(seq)
-    out = TOKEN_SEP.join(sorted(seq, key=lambda x: int(x)))
-    return f"[sort] {inp}{SEPARATOR}{out}"
+    
+    # Randomly choose ascending or descending
+    if random.random() < 0.5:
+        out = TOKEN_SEP.join(sorted(seq, key=lambda x: int(x)))
+        prefix = "[sort_asc]"
+    else:
+        out = TOKEN_SEP.join(sorted(seq, key=lambda x: int(x), reverse=True))
+        prefix = "[sort_desc]"
+    
+    return f"{prefix} {inp}{SEPARATOR}{out}"
 
 def gen_reverse_example(min_l=REV_MIN_L, max_l=REV_MAX_L) -> str:
     L = random.randint(min_l, max_l)
-    seq = [str(random.randint(0, 9)) for _ in range(L)]
+    seq = [gen_random_number() for _ in range(L)]
     inp = TOKEN_SEP.join(seq)
     out = TOKEN_SEP.join(list(reversed(seq)))
     return f"[rev] {inp}{SEPARATOR}{out}"
@@ -95,7 +113,7 @@ def gen_copy_example(min_l=COPY_MIN_L, max_l=COPY_MAX_L, min_rep=COPY_MIN_REPEAT
     alphabet = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     seq = "".join(random.choice(alphabet) for _ in range(L))
     rep = random.randint(min_rep, max_rep)
-    inp = seq
+    inp = f"{seq} repeat {rep} times"  # Explicit instruction
     out = seq * rep
     return f"[copy] {inp}{SEPARATOR}{out}"
 

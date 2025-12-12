@@ -44,6 +44,7 @@ class TokenEmbedding(nn.Module):
         return self.emb(tokens)
 
 class PositionalEmbedding(nn.Module):
+    """Legacy positional embedding (kept for compatibility)."""
     def __init__(self, max_len:int, d_model:int):
         super().__init__()
         self.pos_emb = nn.Embedding(max_len, d_model)
@@ -53,19 +54,95 @@ class PositionalEmbedding(nn.Module):
         positions = torch.arange(seq, device=x.device).unsqueeze(0).expand(b, seq)
         return self.pos_emb(positions)
 
+
+class RotaryPositionalEmbedding(nn.Module):
+    """
+    Rotary Position Embedding (RoPE) for better length generalization.
+    Encodes relative positions through rotation matrices applied to Q and K.
+    """
+    def __init__(self, d_model: int, max_len: int = 2048, base: int = 10000):
+        super().__init__()
+        self.d_model = d_model
+        self.max_len = max_len
+        self.base = base
+        
+        # Precompute the inverse frequencies
+        inv_freq = 1.0 / (base ** (torch.arange(0, d_model, 2).float() / d_model))
+        self.register_buffer("inv_freq", inv_freq)
+        
+        # Cache for sin/cos values
+        self._cos_cached = None
+        self._sin_cached = None
+        self._seq_len_cached = 0
+    
+    def _update_cache(self, seq_len: int, device: torch.device):
+        """Update the cached sin/cos values if sequence length changed."""
+        if seq_len > self._seq_len_cached:
+            self._seq_len_cached = seq_len
+            t = torch.arange(seq_len, device=device, dtype=self.inv_freq.dtype)
+            freqs = torch.outer(t, self.inv_freq)  # (seq_len, d_model/2)
+            emb = torch.cat((freqs, freqs), dim=-1)  # (seq_len, d_model)
+            self._cos_cached = emb.cos().unsqueeze(0).unsqueeze(0)  # (1, 1, seq_len, d_model)
+            self._sin_cached = emb.sin().unsqueeze(0).unsqueeze(0)
+    
+    def forward(self, q: torch.Tensor, k: torch.Tensor):
+        """
+        Apply rotary embeddings to Q and K tensors.
+        Args:
+            q, k: (batch, n_heads, seq_len, head_dim)
+        Returns:
+            q_rotated, k_rotated: same shapes as input
+        """
+        seq_len = q.shape[2]
+        self._update_cache(seq_len, q.device)
+        
+        cos = self._cos_cached[:, :, :seq_len, :].to(q.dtype)
+        sin = self._sin_cached[:, :, :seq_len, :].to(q.dtype)
+        
+        q_rotated = self._apply_rotary(q, cos, sin)
+        k_rotated = self._apply_rotary(k, cos, sin)
+        
+        return q_rotated, k_rotated
+    
+    def _apply_rotary(self, x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor):
+        """Apply rotary embedding to a tensor."""
+        # Split into pairs and rotate
+        x1 = x[..., ::2]   # Even indices
+        x2 = x[..., 1::2]  # Odd indices
+        
+        cos = cos[..., ::2]
+        sin = sin[..., ::2]
+        
+        # Rotate pairs
+        rotated = torch.stack([
+            x1 * cos - x2 * sin,
+            x1 * sin + x2 * cos
+        ], dim=-1).flatten(-2)
+        
+        return rotated
+
+
 class MultiHeadSelfAttention(nn.Module):
-    def __init__(self, d_model:int, n_heads:int, causal:bool=True):
+    def __init__(self, d_model:int, n_heads:int, causal:bool=True, use_rope:bool=True, attn_dropout:float=0.1):
         super().__init__()
         assert d_model % n_heads == 0
         self.d_model = d_model
         self.n_heads = n_heads
         self.head_dim = d_model // n_heads
         self.causal = causal
+        self.use_rope = use_rope
 
         self.w_q = nn.Linear(d_model, d_model)
         self.w_k = nn.Linear(d_model, d_model)
         self.w_v = nn.Linear(d_model, d_model)
         self.out = nn.Linear(d_model, d_model)
+        
+        # Attention dropout (applied after softmax)
+        self.attn_dropout = nn.Dropout(attn_dropout)
+        
+        # RoPE for positional encoding
+        if use_rope:
+            self.rope = RotaryPositionalEmbedding(self.head_dim)
 
     def forward(self, x: torch.Tensor):
         # x: (b, seq, d_model)
@@ -80,6 +157,10 @@ class MultiHeadSelfAttention(nn.Module):
         Qh = reshape_head(Q)
         Kh = reshape_head(K)
         Vh = reshape_head(V)
+        
+        # Apply RoPE to Q and K
+        if self.use_rope:
+            Qh, Kh = self.rope(Qh, Kh)
 
         scores = torch.matmul(Qh, Kh.transpose(-2, -1)) / (self.head_dim ** 0.5)  # b, heads, seq, seq
 
@@ -90,6 +171,7 @@ class MultiHeadSelfAttention(nn.Module):
             scores = scores.masked_fill(~mask, -1e4)
 
         attn = torch.softmax(scores, dim=-1)
+        attn = self.attn_dropout(attn)  # Apply attention dropout
         out_heads = torch.matmul(attn, Vh)  # b, heads, seq, head_dim
         out = out_heads.transpose(1,2).contiguous().view(b, seq, self.d_model)
         return self.out(out)
@@ -106,10 +188,10 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 class TransformerBlock(nn.Module):
-    def __init__(self, d_model:int, n_heads:int, d_ff:int, dropout:float=0.0):
+    def __init__(self, d_model:int, n_heads:int, d_ff:int, dropout:float=0.0, use_rope:bool=True):
         super().__init__()
         self.ln1 = nn.LayerNorm(d_model)
-        self.attn = MultiHeadSelfAttention(d_model, n_heads, causal=True)
+        self.attn = MultiHeadSelfAttention(d_model, n_heads, causal=True, use_rope=use_rope)
         self.ln2 = nn.LayerNorm(d_model)
         self.ffn = FeedForward(d_model, d_ff)
         self.dropout = nn.Dropout(dropout)
@@ -124,16 +206,25 @@ class TransformerBlock(nn.Module):
         return x
 
 class MiniGPT(nn.Module):
-    def __init__(self, vocab_size:int, max_len:int, d_model:int, n_heads:int, n_layers:int, d_ff:int, dropout:float=0.0, use_checkpoint:bool=False):
+    def __init__(self, vocab_size:int, max_len:int, d_model:int, n_heads:int, n_layers:int, d_ff:int, dropout:float=0.0, use_checkpoint:bool=False, use_rope:bool=True):
         super().__init__()
         self.tok_emb = TokenEmbedding(vocab_size, d_model)
-        self.pos_emb = PositionalEmbedding(max_len, d_model)
+        self.use_rope = use_rope
+        
+        # Only use additive positional embedding if NOT using RoPE
+        if not use_rope:
+            self.pos_emb = PositionalEmbedding(max_len, d_model)
+        
         self.drop = nn.Dropout(dropout)
-        self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)])
+        self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads, d_ff, dropout, use_rope=use_rope) for _ in range(n_layers)])
         self.ln_f = nn.LayerNorm(d_model)
         self.head = nn.Linear(d_model, vocab_size, bias=False)
         self.max_len = max_len
         self.use_checkpoint = use_checkpoint
+        
+        # Weight tying: share input embedding with output projection
+        # This reduces parameters and improves generalization
+        self.head.weight = self.tok_emb.emb.weight
 
     def forward(self, tokens:torch.LongTensor):
         # tokens: (b, seq) integers
@@ -141,8 +232,12 @@ class MiniGPT(nn.Module):
         if seq > self.max_len:
             tokens = tokens[:, -self.max_len:]
             seq = self.max_len
-        x = self.tok_emb(tokens) + self.pos_emb(tokens)
+        
+        x = self.tok_emb(tokens)
+        if not self.use_rope:
+            x = x + self.pos_emb(tokens)  # Only add positional embedding if not using RoPE
         x = self.drop(x)
+        
         if self.use_checkpoint:
             # checkpoint in groups to save memory - split blocks into chunks
             # naive: checkpoint each block (slower but memory-friendly)
@@ -251,6 +346,41 @@ def collate_fn(batch:List[dict], pad_id:int, max_len:int):
 # ---------- Utility: decode ids -> string ----------
 def decode_ids_to_text(ids: List[int], itos: dict):
     return "".join([itos.get(i, "<unk>") for i in ids])
+
+def levenshtein_distance(s1: str, s2: str) -> int:
+    """
+    Compute the Levenshtein (edit) distance between two strings.
+    Returns the minimum number of insertions, deletions, or substitutions
+    needed to transform s1 into s2.
+    """
+    if len(s1) < len(s2):
+        return levenshtein_distance(s2, s1)
+    
+    if len(s2) == 0:
+        return len(s1)
+    
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            # j+1 instead of j since previous_row and current_row are one character longer
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+    
+    return previous_row[-1]
+
+def normalized_edit_distance(s1: str, s2: str) -> float:
+    """
+    Normalized edit distance: 0.0 = identical, 1.0 = completely different.
+    Normalized by max length of the two strings.
+    """
+    if len(s1) == 0 and len(s2) == 0:
+        return 0.0
+    dist = levenshtein_distance(s1, s2)
+    return dist / max(len(s1), len(s2))
 
 # ---------- Autoregressive Generation ----------
 @torch.no_grad()
@@ -522,6 +652,9 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
     task_correct = defaultdict(int)
     task_total = defaultdict(int)
     
+    # Edit distance tracking
+    total_edit_distance = 0.0
+    
     # Store sample predictions
     sample_preds = []
     
@@ -561,6 +694,10 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
             task_total[task_type] += 1
             total_examples += 1
             
+            # Compute edit distance (useful when exact match is 0)
+            edit_dist = normalized_edit_distance(generated_str, target_str)
+            total_edit_distance += edit_dist
+            
             is_match = (generated_str == target_str)
             if is_match:
                 exact_matches += 1
@@ -572,7 +709,8 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
                     "prompt": decode_ids_to_text(prompt_ids, itos),
                     "target": target_str,
                     "generated": generated_str,
-                    "match": is_match
+                    "match": is_match,
+                    "edit_dist": edit_dist
                 })
     
     # Print samples
@@ -582,10 +720,11 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
             status = "✓" if s["match"] else "✗"
             print(f"  {status} Prompt: {s['prompt'][:50]}...")
             print(f"    Target:    '{s['target']}'")
-            print(f"    Generated: '{s['generated']}'")
+            print(f"    Generated: '{s['generated']}' (edit_dist={s['edit_dist']:.2f})")
     
     exact_match_rate = (exact_matches / total_examples) if total_examples > 0 else 0.0
     token_accuracy = (correct_tokens / total_tokens) if total_tokens > 0 else 0.0
+    avg_edit_distance = (total_edit_distance / total_examples) if total_examples > 0 else 1.0
     
     # Compute per-task accuracy
     task_accuracy = {}
@@ -593,7 +732,7 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
         if task_total[task] > 0:
             task_accuracy[task] = task_correct[task] / task_total[task]
     
-    return exact_match_rate, token_accuracy, task_accuracy
+    return exact_match_rate, token_accuracy, avg_edit_distance, task_accuracy
 
 # ---------- Argument parsing ----------
 def parse_args():
@@ -774,12 +913,13 @@ def main():
             
             # Optional: Autoregressive evaluation (slower but more realistic)
             if args.autoreg_eval:
-                autoreg_exact, autoreg_token_acc, autoreg_task_acc = evaluate_autoregressive(
+                autoreg_exact, autoreg_token_acc, autoreg_edit_dist, autoreg_task_acc = evaluate_autoregressive(
                     model, val_loader, device, args, stoi, itos
                 )
                 history.setdefault("autoreg_exact", []).append(autoreg_exact)
                 history.setdefault("autoreg_token_acc", []).append(autoreg_token_acc)
-                print(f"[Epoch {epoch}] AutoReg exact_match={autoreg_exact:.4f} | token_acc={autoreg_token_acc:.4f}")
+                history.setdefault("autoreg_edit_dist", []).append(autoreg_edit_dist)
+                print(f"[Epoch {epoch}] AutoReg exact_match={autoreg_exact:.4f} | token_acc={autoreg_token_acc:.4f} | edit_dist={autoreg_edit_dist:.4f}")
                 if autoreg_task_acc:
                     print(f"[Epoch {epoch}] AutoReg per-task:")
                     for task, acc in sorted(autoreg_task_acc.items()):
