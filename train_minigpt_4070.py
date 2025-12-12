@@ -199,6 +199,73 @@ def collate_fn(batch:List[dict], pad_id:int, max_len:int):
 def decode_ids_to_text(ids: List[int], itos: dict):
     return "".join([itos.get(i, "<unk>") for i in ids])
 
+# ---------- Autoregressive Generation ----------
+@torch.no_grad()
+def generate_autoregressive(model, prompt_ids: List[int], stoi: dict, itos: dict, 
+                            max_new_tokens: int = 50, device: torch.device = None) -> List[int]:
+    """
+    Generate tokens autoregressively from a prompt.
+    Stops when:
+      - max_new_tokens is reached
+      - A newline or special stopping pattern is detected
+    
+    Args:
+        model: The MiniGPT model
+        prompt_ids: List of token IDs for the prompt (input up to and including "|")
+        stoi: String to ID mapping
+        itos: ID to string mapping
+        max_new_tokens: Maximum tokens to generate
+        device: Device to run on
+    
+    Returns:
+        List of generated token IDs (not including prompt)
+    """
+    model.eval()
+    
+    # Start with prompt
+    generated = list(prompt_ids)
+    
+    for _ in range(max_new_tokens):
+        # Prepare input (truncate if too long for model)
+        input_ids = torch.tensor([generated], dtype=torch.long, device=device)
+        if input_ids.shape[1] > model.max_len:
+            input_ids = input_ids[:, -model.max_len:]
+        
+        # Forward pass
+        logits = model(input_ids)  # (1, seq, vocab)
+        
+        # Get next token (greedy decoding)
+        next_token_logits = logits[0, -1, :]  # (vocab,)
+        next_token = next_token_logits.argmax().item()
+        
+        generated.append(next_token)
+        
+        # Stopping conditions
+        next_char = itos.get(next_token, "")
+        if next_char == "\n":
+            break
+        # Stop if we generate another "|" (unlikely but possible)
+        if next_char == "|" and len(generated) > len(prompt_ids) + 5:
+            break
+    
+    # Return only the generated part (after prompt)
+    return generated[len(prompt_ids):]
+
+def extract_prompt_and_target(raw: str, stoi: dict) -> Tuple[List[int], str]:
+    """
+    Split raw example into prompt (input) and target (output).
+    Returns prompt_ids (up to and including " | ") and target string.
+    """
+    if " | " not in raw:
+        return [], ""
+    
+    parts = raw.split(" | ", 1)
+    prompt = parts[0] + " | "
+    target = parts[1] if len(parts) > 1 else ""
+    
+    prompt_ids = [stoi.get(ch, stoi.get("<unk>", 1)) for ch in prompt]
+    return prompt_ids, target
+
 # ---------- Memory Profiling ----------
 def log_memory(prefix: str = ""):
     """Log GPU memory usage."""
@@ -382,6 +449,83 @@ def evaluate(model, dataloader, device, args, itos):
     
     return avg_loss, exact_match_rate, token_accuracy, task_accuracy
 
+
+@torch.no_grad()
+def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
+    """
+    Evaluate using true autoregressive generation (not teacher-forced).
+    This gives a more realistic measure of model performance.
+    """
+    model.eval()
+    
+    exact_matches = 0
+    total_examples = 0
+    
+    # Per-task accuracy tracking
+    task_correct = defaultdict(int)
+    task_total = defaultdict(int)
+    
+    # Store sample predictions
+    sample_preds = []
+    
+    for padded, raws in tqdm(dataloader, desc="AutoReg Eval"):
+        for i, raw in enumerate(raws):
+            if raw is None:
+                continue
+            
+            # Extract prompt and target
+            prompt_ids, target_str = extract_prompt_and_target(raw, stoi)
+            if not prompt_ids or not target_str:
+                continue
+            
+            # Generate autoregressively
+            generated_ids = generate_autoregressive(
+                model, prompt_ids, stoi, itos,
+                max_new_tokens=len(target_str) + 10,  # Give some buffer
+                device=device
+            )
+            
+            # Decode generated text
+            generated_str = decode_ids_to_text(generated_ids, itos).strip()
+            
+            # Compare with target
+            task_type = extract_task_type(raw)
+            task_total[task_type] += 1
+            total_examples += 1
+            
+            is_match = (generated_str == target_str)
+            if is_match:
+                exact_matches += 1
+                task_correct[task_type] += 1
+            
+            # Store samples for display
+            if args.show_samples and len(sample_preds) < 5:
+                sample_preds.append({
+                    "prompt": decode_ids_to_text(prompt_ids, itos),
+                    "target": target_str,
+                    "generated": generated_str,
+                    "match": is_match
+                })
+    
+    # Print samples
+    if args.show_samples and sample_preds:
+        print("\n[AutoReg Samples]")
+        for s in sample_preds:
+            status = "✓" if s["match"] else "✗"
+            print(f"  {status} Prompt: {s['prompt'][:50]}...")
+            print(f"    Target:    '{s['target']}'")
+            print(f"    Generated: '{s['generated']}'")
+    
+    exact_match_rate = (exact_matches / total_examples) if total_examples > 0 else 0.0
+    
+    # Compute per-task accuracy
+    task_accuracy = {}
+    for task in task_total:
+        if task_total[task] > 0:
+            task_accuracy[task] = task_correct[task] / task_total[task]
+    
+    return exact_match_rate, task_accuracy
+
 # ---------- Argument parsing ----------
 def parse_args():
     p = argparse.ArgumentParser()
@@ -409,6 +553,7 @@ def parse_args():
     # Memory profiling
     p.add_argument("--profile_memory", action="store_true", help="log GPU memory usage each epoch")
     p.add_argument("--show_samples", action="store_true", help="show sample predictions during evaluation")
+    p.add_argument("--autoreg_eval", action="store_true", help="use autoregressive generation for evaluation (slower but more realistic)")
     args = p.parse_args()
     if args.d_ff is None:
         args.d_ff = args.d_model * 4
@@ -513,9 +658,21 @@ def main():
             
             # Print per-task accuracy breakdown
             if task_accuracy:
-                print(f"[Epoch {epoch}] Per-task accuracy:")
+                print(f"[Epoch {epoch}] Per-task accuracy (teacher-forced):")
                 for task, acc in sorted(task_accuracy.items()):
                     print(f"    {task}: {acc:.4f}")
+            
+            # Optional: Autoregressive evaluation (slower but more realistic)
+            if args.autoreg_eval:
+                autoreg_exact, autoreg_task_acc = evaluate_autoregressive(
+                    model, val_loader, device, args, stoi, itos
+                )
+                history.setdefault("autoreg_exact", []).append(autoreg_exact)
+                print(f"[Epoch {epoch}] AutoReg exact_match={autoreg_exact:.4f}")
+                if autoreg_task_acc:
+                    print(f"[Epoch {epoch}] AutoReg per-task:")
+                    for task, acc in sorted(autoreg_task_acc.items()):
+                        print(f"    {task}: {acc:.4f}")
             
             # Early stopping check
             if val_loss < best_val_loss - args.min_delta:
