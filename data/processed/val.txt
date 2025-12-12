@@ -1,0 +1,1000 @@
+[addition] 26 + 9 | 35
+[sorting] 3 0 6 8 8 7 2 9 1 0 | 0 0 1 2 3 6 7 8 8 9
+[relations] E796 is parent of E847. E847 is parent of E888. Who is the ancestor 2 of E888? | E796
+[reversing] 3 0 5 1 1 8 3 1 | 1 3 8 1 1 5 0 3
+[copying] BO | BOBO
+[reversing] 2 6 9 8 6 2 9 0 | 0 9 2 6 8 9 6 2
+[copying] CAUF | CAUFCAUFCAUFCAUF
+[copying] ZOXRF | ZOXRFZOXRF
+[copying] PGD | PGDPGDPGD
+[sorting] 5 9 2 9 | 2 5 9 9
+[sorting] 2 2 1 4 8 1 4 2 | 1 1 2 2 2 4 4 8
+[sorting] 1 3 6 2 0 5 | 0 1 2 3 5 6
+[copying] KVZTRG | KVZTRGKVZTRG
+[copying] PMR | PMRPMRPMRPMR
+[sorting] 4 2 9 3 4 3 7 0 4 | 0 2 3 3 4 4 4 7 9
+[relations] E728 is parent of E78. E78 is parent of E649. Who is the ancestor 2 of E649? | E728
+[sorting] 9 1 3 9 1 0 3 | 0 1 1 3 3 9 9
+[relations] E366 is parent of E106. Who is the ancestor 1 of E106? | E366
+[sorting] 4 1 1 0 0 5 6 8 5 | 0 0 1 1 4 5 5 6 8
+[relations] E599 is parent of E128. Who is the ancestor 1 of E128? | E599
+[relations] E846 is parent of E827. Who is the ancestor 1 of E827? | E846
+[addition] 598 + 549 | 1147
+[relations] E354 is parent of E121. Who is the ancestor 1 of E121? | E354
+[relations] E535 is parent of E790. Who is the ancestor 1 of E790? | E535
+[addition] 911 + 5 | 916
+[reversing] 7 4 4 4 2 4 5 6 3 1 | 1 3 6 5 4 2 4 4 4 7
+[addition] 3 + 18 | 21
+[relations] E578 is parent of E598. Who is the ancestor 1 of E598? | E578
+[relations] E122 is parent of E973. E973 is parent of E787. Who is the ancestor 2 of E787? | E122
+[reversing] 1 4 5 | 5 4 1
+[addition] 47 + 101 | 148
+[copying] JMXYRP | JMXYRPJMXYRP
+[copying] DXKYIK | DXKYIKDXKYIK
+[reversing] 8 7 1 | 1 7 8
+[reversing] 6 5 3 3 4 9 2 6 3 3 | 3 3 6 2 9 4 3 3 5 6
+[relations] E595 is parent of E65. E65 is parent of E344. Who is the ancestor 2 of E344? | E595
+[sorting] 6 5 6 9 | 5 6 6 9
+[addition] 5 + 82 | 87
+[copying] PEZ | PEZPEZ
+[addition] 739 + 6 | 745
+[relations] E390 is parent of E334. E334 is parent of E99. Who is the ancestor 2 of E99? | E390
+[reversing] 5 1 5 | 5 1 5
+[sorting] 8 5 0 5 5 | 0 5 5 5 8
+[copying] QFVO | QFVOQFVO
+[addition] 663 + 8 | 671
+[relations] E637 is parent of E66. Who is the ancestor 1 of E66? | E637
+[addition] 352 + 86 | 438
+[sorting] 6 5 6 8 0 4 1 6 6 9 8 7 | 0 1 4 5 6 6 6 6 7 8 8 9
+[addition] 52 + 7 | 59
+[sorting] 4 0 8 7 8 | 0 4 7 8 8
+[relations] E639 is parent of E724. E724 is parent of E743. Who is the ancestor 2 of E743? | E639
+[relations] E744 is parent of E902. Who is the ancestor 1 of E902? | E744
+[reversing] 1 9 1 6 4 7 | 7 4 6 1 9 1
+[copying] NVNSW | NVNSWNVNSW
+[relations] E737 is parent of E173. Who is the ancestor 1 of E173? | E737
+[sorting] 3 8 8 7 3 1 0 7 4 0 | 0 0 1 3 3 4 7 7 8 8
+[relations] E155 is parent of E638. Who is the ancestor 1 of E638? | E155
+[copying] YXXMUP | YXXMUPYXXMUPYXXMUPYXXMUP
+[sorting] 0 2 3 3 7 2 4 5 | 0 2 2 3 3 4 5 7
+[addition] 72 + 0 | 72
+[relations] E34 is parent of E153. Who is the ancestor 1 of E153? | E34
+[addition] 749 + 16 | 765
+[sorting] 3 2 4 8 0 7 2 2 | 0 2 2 2 3 4 7 8
+[relations] E30 is parent of E427. Who is the ancestor 1 of E427? | E30
+[copying] NOMW | NOMWNOMWNOMWNOMW
+[copying] QWYRQ | QWYRQQWYRQQWYRQ
+[addition] 9 + 6 | 15
+[copying] RAYSN | RAYSNRAYSNRAYSN
+[copying] VORX | VORXVORXVORXVORX
+[sorting] 4 0 9 5 8 9 | 0 4 5 8 9 9
+[copying] JQT | JQTJQTJQTJQT
+[reversing] 0 3 3 3 7 5 | 5 7 3 3 3 0
+[sorting] 5 8 5 0 3 4 6 5 3 1 | 0 1 3 3 4 5 5 5 6 8
+[relations] E148 is parent of E878. E878 is parent of E753. Who is the ancestor 2 of E753? | E148
+[addition] 0 + 78 | 78
+[sorting] 3 4 8 3 1 7 1 7 7 8 7 9 | 1 1 3 3 4 7 7 7 7 8 8 9
+[reversing] 0 0 5 5 4 3 0 2 4 5 | 5 4 2 0 3 4 5 5 0 0
+[copying] AU | AUAUAU
+[copying] HPDAY | HPDAYHPDAYHPDAYHPDAY
+[copying] XQKAE | XQKAEXQKAEXQKAE
+[reversing] 6 8 5 9 0 7 | 7 0 9 5 8 6
+[copying] WWV | WWVWWV
+[reversing] 4 1 3 1 4 1 6 5 8 | 8 5 6 1 4 1 3 1 4
+[addition] 5 + 906 | 911
+[reversing] 8 8 8 4 1 2 | 2 1 4 8 8 8
+[relations] E595 is parent of E890. Who is the ancestor 1 of E890? | E595
+[addition] 9 + 55 | 64
+[sorting] 1 4 2 4 | 1 2 4 4
+[copying] LHMMBC | LHMMBCLHMMBCLHMMBCLHMMBC
+[sorting] 6 0 9 8 8 7 6 0 | 0 0 6 6 7 8 8 9
+[addition] 170 + 4 | 174
+[relations] E193 is parent of E247. E247 is parent of E164. Who is the ancestor 2 of E164? | E193
+[reversing] 0 0 6 6 0 0 7 8 0 | 0 8 7 0 0 6 6 0 0
+[sorting] 4 7 4 4 | 4 4 4 7
+[copying] MQVH | MQVHMQVHMQVHMQVH
+[addition] 7 + 900 | 907
+[sorting] 3 2 1 3 0 6 | 0 1 2 3 3 6
+[addition] 7 + 35 | 42
+[sorting] 1 6 6 7 8 1 7 3 6 9 1 9 | 1 1 1 3 6 6 6 7 7 8 9 9
+[addition] 51 + 75 | 126
+[reversing] 7 8 6 6 9 3 5 9 6 4 1 | 1 4 6 9 5 3 9 6 6 8 7
+[addition] 92 + 856 | 948
+[copying] SBO | SBOSBOSBO
+[addition] 269 + 5 | 274
+[reversing] 5 4 2 5 2 5 4 6 9 0 3 | 3 0 9 6 4 5 2 5 2 4 5
+[reversing] 6 7 0 1 4 0 4 0 4 5 | 5 4 0 4 0 4 1 0 7 6
+[relations] E204 is parent of E517. Who is the ancestor 1 of E517? | E204
+[addition] 7 + 63 | 70
+[copying] QDVYZ | QDVYZQDVYZ
+[sorting] 8 8 0 4 5 5 3 2 2 9 1 0 | 0 0 1 2 2 3 4 5 5 8 8 9
+[sorting] 3 9 7 0 | 0 3 7 9
+[sorting] 2 4 0 5 | 0 2 4 5
+[sorting] 9 6 1 2 9 | 1 2 6 9 9
+[reversing] 4 8 9 | 9 8 4
+[reversing] 0 6 2 1 5 3 1 4 2 | 2 4 1 3 5 1 2 6 0
+[copying] ZXIV | ZXIVZXIVZXIV
+[sorting] 1 0 2 3 5 7 | 0 1 2 3 5 7
+[sorting] 6 9 9 4 0 3 8 8 4 9 | 0 3 4 4 6 8 8 9 9 9
+[relations] E7 is parent of E295. Who is the ancestor 1 of E295? | E7
+[copying] PJ | PJPJPJPJ
+[copying] UL | ULULULUL
+[copying] URDZQ | URDZQURDZQURDZQURDZQ
+[copying] TCL | TCLTCLTCLTCL
+[copying] JPQXW | JPQXWJPQXWJPQXWJPQXW
+[relations] E788 is parent of E418. Who is the ancestor 1 of E418? | E788
+[sorting] 6 8 4 2 5 1 3 2 1 | 1 1 2 2 3 4 5 6 8
+[relations] E175 is parent of E806. E806 is parent of E969. Who is the ancestor 2 of E969? | E175
+[addition] 25 + 8 | 33
+[sorting] 0 0 9 7 1 5 6 5 8 8 2 | 0 0 1 2 5 5 6 7 8 8 9
+[sorting] 1 1 9 6 4 2 5 9 7 9 6 | 1 1 2 4 5 6 6 7 9 9 9
+[sorting] 5 9 2 8 5 4 8 | 2 4 5 5 8 8 9
+[sorting] 3 4 7 0 4 9 3 8 8 6 | 0 3 3 4 4 6 7 8 8 9
+[reversing] 6 0 0 8 2 | 2 8 0 0 6
+[addition] 8 + 42 | 50
+[relations] E215 is parent of E491. Who is the ancestor 1 of E491? | E215
+[relations] E16 is parent of E346. Who is the ancestor 1 of E346? | E16
+[addition] 32 + 4 | 36
+[addition] 720 + 5 | 725
+[copying] TTCN | TTCNTTCNTTCN
+[reversing] 1 6 0 9 3 9 5 8 7 6 9 8 | 8 9 6 7 8 5 9 3 9 0 6 1
+[addition] 2 + 4 | 6
+[sorting] 7 8 3 1 3 0 5 2 7 6 8 0 | 0 0 1 2 3 3 5 6 7 7 8 8
+[copying] TTJPY | TTJPYTTJPYTTJPY
+[relations] E13 is parent of E975. Who is the ancestor 1 of E975? | E13
+[addition] 490 + 0 | 490
+[relations] E987 is parent of E883. E883 is parent of E552. Who is the ancestor 2 of E552? | E987
+[sorting] 5 1 5 2 | 1 2 5 5
+[sorting] 5 7 3 8 | 3 5 7 8
+[reversing] 9 8 7 9 2 6 6 4 4 | 4 4 6 6 2 9 7 8 9
+[addition] 65 + 81 | 146
+[sorting] 5 3 7 8 1 4 2 5 8 | 1 2 3 4 5 5 7 8 8
+[relations] E56 is parent of E763. E763 is parent of E711. Who is the ancestor 2 of E711? | E56
+[addition] 507 + 753 | 1260
+[addition] 119 + 394 | 513
+[addition] 103 + 72 | 175
+[addition] 47 + 0 | 47
+[relations] E56 is parent of E734. E734 is parent of E818. Who is the ancestor 2 of E818? | E56
+[copying] VQZ | VQZVQZVQZVQZ
+[addition] 7 + 3 | 10
+[copying] FHZOZ | FHZOZFHZOZFHZOZFHZOZ
+[addition] 2 + 72 | 74
+[copying] XHC | XHCXHCXHCXHC
+[copying] WOWB | WOWBWOWB
+[copying] FWA | FWAFWA
+[relations] E896 is parent of E255. Who is the ancestor 1 of E255? | E896
+[copying] CYZ | CYZCYZCYZCYZ
+[addition] 81 + 11 | 92
+[reversing] 3 4 7 6 3 8 2 4 1 8 8 | 8 8 1 4 2 8 3 6 7 4 3
+[sorting] 2 6 7 7 2 2 6 2 | 2 2 2 2 6 6 7 7
+[copying] GHADE | GHADEGHADE
+[relations] E754 is parent of E935. E935 is parent of E361. Who is the ancestor 2 of E361? | E754
+[reversing] 3 0 3 8 8 5 8 8 | 8 8 5 8 8 3 0 3
+[reversing] 7 8 8 2 4 6 3 2 4 | 4 2 3 6 4 2 8 8 7
+[reversing] 1 4 5 | 5 4 1
+[copying] DQQL | DQQLDQQLDQQL
+[reversing] 7 7 1 | 1 7 7
+[copying] IZZ | IZZIZZ
+[relations] E414 is parent of E585. E585 is parent of E237. Who is the ancestor 2 of E237? | E414
+[copying] RHCNDD | RHCNDDRHCNDDRHCNDD
+[copying] DHN | DHNDHN
+[copying] ZCPPIQ | ZCPPIQZCPPIQZCPPIQZCPPIQ
+[relations] E637 is parent of E486. Who is the ancestor 1 of E486? | E637
+[relations] E502 is parent of E897. E897 is parent of E918. Who is the ancestor 2 of E918? | E502
+[sorting] 5 0 2 2 | 0 2 2 5
+[addition] 3 + 81 | 84
+[addition] 85 + 45 | 130
+[addition] 868 + 3 | 871
+[copying] SKPHIO | SKPHIOSKPHIOSKPHIO
+[addition] 51 + 5 | 56
+[copying] PQEZJD | PQEZJDPQEZJD
+[sorting] 0 2 1 5 | 0 1 2 5
+[reversing] 0 7 7 5 8 8 1 9 4 4 4 4 | 4 4 4 4 9 1 8 8 5 7 7 0
+[addition] 279 + 41 | 320
+[copying] OU | OUOUOUOU
+[reversing] 5 9 0 6 5 5 | 5 5 6 0 9 5
+[addition] 9 + 34 | 43
+[copying] WTOS | WTOSWTOSWTOS
+[addition] 13 + 500 | 513
+[copying] GMSV | GMSVGMSV
+[sorting] 1 3 3 2 6 1 6 6 3 3 2 | 1 1 2 2 3 3 3 3 6 6 6
+[copying] SFEUY | SFEUYSFEUY
+[sorting] 9 5 0 4 3 9 6 | 0 3 4 5 6 9 9
+[addition] 484 + 158 | 642
+[addition] 915 + 8 | 923
+[reversing] 8 6 3 7 2 8 5 8 7 | 7 8 5 8 2 7 3 6 8
+[addition] 146 + 2 | 148
+[addition] 4 + 75 | 79
+[reversing] 3 1 3 2 7 8 3 | 3 8 7 2 3 1 3
+[copying] GVLJ | GVLJGVLJGVLJ
+[addition] 6 + 4 | 10
+[relations] E339 is parent of E620. Who is the ancestor 1 of E620? | E339
+[copying] IEAWZZ | IEAWZZIEAWZZIEAWZZIEAWZZ
+[addition] 2 + 8 | 10
+[addition] 0 + 207 | 207
+[copying] XAD | XADXADXADXAD
+[copying] DKUI | DKUIDKUI
+[reversing] 3 6 2 7 6 5 1 8 0 2 | 2 0 8 1 5 6 7 2 6 3
+[sorting] 0 9 5 6 | 0 5 6 9
+[reversing] 9 5 8 5 7 7 0 6 4 6 0 0 | 0 0 6 4 6 0 7 7 5 8 5 9
+[sorting] 6 4 0 4 9 5 5 4 3 4 3 2 | 0 2 3 3 4 4 4 4 5 5 6 9
+[copying] LFDZG | LFDZGLFDZGLFDZG
+[reversing] 3 0 0 | 0 0 3
+[relations] E195 is parent of E373. Who is the ancestor 1 of E373? | E195
+[reversing] 9 6 3 3 1 1 6 8 1 1 | 1 1 8 6 1 1 3 3 6 9
+[copying] GC | GCGCGCGC
+[copying] PESUFO | PESUFOPESUFOPESUFOPESUFO
+[reversing] 6 8 3 1 | 1 3 8 6
+[sorting] 0 7 4 5 | 0 4 5 7
+[reversing] 6 0 5 0 5 9 1 2 | 2 1 9 5 0 5 0 6
+[sorting] 1 7 4 5 | 1 4 5 7
+[sorting] 6 4 1 4 2 4 8 9 8 0 | 0 1 2 4 4 4 6 8 8 9
+[copying] QAD | QADQAD
+[addition] 56 + 563 | 619
+[relations] E904 is parent of E723. E723 is parent of E490. Who is the ancestor 2 of E490? | E904
+[sorting] 9 5 5 8 3 1 8 5 5 8 7 | 1 3 5 5 5 5 7 8 8 8 9
+[addition] 77 + 23 | 100
+[reversing] 4 1 3 2 0 2 0 3 5 7 3 | 3 7 5 3 0 2 0 2 3 1 4
+[copying] JLFZR | JLFZRJLFZRJLFZR
+[copying] CCQHI | CCQHICCQHICCQHICCQHI
+[copying] JTPIT | JTPITJTPITJTPITJTPIT
+[copying] UHWLZO | UHWLZOUHWLZOUHWLZO
+[sorting] 3 9 3 0 3 3 9 6 | 0 3 3 3 3 6 9 9
+[relations] E47 is parent of E650. Who is the ancestor 1 of E650? | E47
+[copying] MAXBN | MAXBNMAXBNMAXBN
+[relations] E331 is parent of E280. Who is the ancestor 1 of E280? | E331
+[reversing] 9 2 7 3 8 | 8 3 7 2 9
+[reversing] 2 4 3 | 3 4 2
+[sorting] 8 7 3 3 8 8 4 | 3 3 4 7 8 8 8
+[addition] 4 + 108 | 112
+[reversing] 7 9 5 6 6 4 9 1 5 | 5 1 9 4 6 6 5 9 7
+[copying] WVAOH | WVAOHWVAOH
+[copying] OMPD | OMPDOMPDOMPD
+[addition] 4 + 721 | 725
+[reversing] 7 3 7 1 1 4 | 4 1 1 7 3 7
+[relations] E238 is parent of E272. Who is the ancestor 1 of E272? | E238
+[relations] E807 is parent of E247. E247 is parent of E24. Who is the ancestor 2 of E24? | E807
+[reversing] 8 7 3 | 3 7 8
+[sorting] 1 2 2 2 | 1 2 2 2
+[copying] CRN | CRNCRNCRN
+[sorting] 2 4 4 6 2 8 | 2 2 4 4 6 8
+[sorting] 3 2 1 8 9 | 1 2 3 8 9
+[sorting] 8 4 7 2 6 0 1 9 2 | 0 1 2 2 4 6 7 8 9
+[addition] 908 + 99 | 1007
+[reversing] 5 0 4 4 9 1 5 1 8 7 9 | 9 7 8 1 5 1 9 4 4 0 5
+[copying] TF | TFTFTF
+[copying] HWTEMF | HWTEMFHWTEMFHWTEMF
+[relations] E432 is parent of E675. E675 is parent of E952. Who is the ancestor 2 of E952? | E432
+[addition] 57 + 5 | 62
+[sorting] 9 5 5 5 0 5 5 1 0 3 7 7 | 0 0 1 3 5 5 5 5 5 7 7 9
+[copying] WN | WNWNWN
+[sorting] 8 8 6 8 1 3 7 6 2 2 7 6 | 1 2 2 3 6 6 6 7 7 8 8 8
+[sorting] 3 2 8 1 5 8 6 1 0 | 0 1 1 2 3 5 6 8 8
+[relations] E124 is parent of E374. E374 is parent of E845. Who is the ancestor 2 of E845? | E124
+[addition] 4 + 9 | 13
+[reversing] 5 0 9 3 | 3 9 0 5
+[relations] E289 is parent of E857. E857 is parent of E439. Who is the ancestor 2 of E439? | E289
+[addition] 295 + 8 | 303
+[sorting] 2 0 6 2 9 4 1 1 0 7 6 | 0 0 1 1 2 2 4 6 6 7 9
+[reversing] 9 4 1 8 4 4 9 5 2 | 2 5 9 4 4 8 1 4 9
+[addition] 7 + 427 | 434
+[addition] 27 + 43 | 70
+[reversing] 0 9 6 5 8 1 1 4 | 4 1 1 8 5 6 9 0
+[relations] E453 is parent of E762. Who is the ancestor 1 of E762? | E453
+[relations] E23 is parent of E829. E829 is parent of E61. Who is the ancestor 2 of E61? | E23
+[reversing] 0 3 9 1 5 7 7 9 2 9 9 | 9 9 2 9 7 7 5 1 9 3 0
+[addition] 7 + 92 | 99
+[addition] 367 + 41 | 408
+[copying] RVEP | RVEPRVEPRVEP
+[reversing] 6 6 7 0 7 3 0 8 5 | 5 8 0 3 7 0 7 6 6
+[copying] YYX | YYXYYXYYX
+[copying] CZMGNX | CZMGNXCZMGNX
+[addition] 844 + 6 | 850
+[sorting] 4 4 7 6 3 7 | 3 4 4 6 7 7
+[sorting] 9 3 9 8 4 3 | 3 3 4 8 9 9
+[addition] 50 + 3 | 53
+[relations] E652 is parent of E614. E614 is parent of E529. Who is the ancestor 2 of E529? | E652
+[sorting] 7 1 9 2 1 4 0 3 7 1 9 | 0 1 1 1 2 3 4 7 7 9 9
+[sorting] 1 0 3 7 6 | 0 1 3 6 7
+[addition] 532 + 1 | 533
+[reversing] 3 2 7 7 6 | 6 7 7 2 3
+[relations] E219 is parent of E460. Who is the ancestor 1 of E460? | E219
+[reversing] 3 1 2 6 8 9 2 7 9 8 | 8 9 7 2 9 8 6 2 1 3
+[reversing] 1 2 3 | 3 2 1
+[sorting] 6 6 0 7 0 | 0 0 6 6 7
+[reversing] 3 0 2 0 1 8 6 3 | 3 6 8 1 0 2 0 3
+[addition] 32 + 8 | 40
+[copying] CUJRTZ | CUJRTZCUJRTZCUJRTZ
+[reversing] 3 1 0 1 0 6 7 1 3 6 | 6 3 1 7 6 0 1 0 1 3
+[sorting] 3 8 3 1 7 1 5 2 9 3 6 | 1 1 2 3 3 3 5 6 7 8 9
+[relations] E219 is parent of E809. Who is the ancestor 1 of E809? | E219
+[sorting] 4 4 7 7 2 7 3 | 2 3 4 4 7 7 7
+[sorting] 6 3 0 9 8 4 9 2 4 | 0 2 3 4 4 6 8 9 9
+[sorting] 1 8 4 1 | 1 1 4 8
+[addition] 14 + 685 | 699
+[addition] 766 + 8 | 774
+[copying] ZGZ | ZGZZGZ
+[addition] 881 + 62 | 943
+[relations] E207 is parent of E426. E426 is parent of E404. Who is the ancestor 2 of E404? | E207
+[addition] 30 + 6 | 36
+[sorting] 9 9 6 2 6 3 6 1 2 2 5 4 | 1 2 2 2 3 4 5 6 6 6 9 9
+[copying] YPIKVK | YPIKVKYPIKVKYPIKVKYPIKVK
+[copying] LL | LLLLLLLL
+[reversing] 7 4 3 6 2 5 0 | 0 5 2 6 3 4 7
+[addition] 67 + 798 | 865
+[copying] OR | OROROR
+[reversing] 6 3 7 9 3 | 3 9 7 3 6
+[addition] 661 + 6 | 667
+[sorting] 1 9 1 9 3 | 1 1 3 9 9
+[reversing] 7 2 4 5 1 7 3 2 2 7 | 7 2 2 3 7 1 5 4 2 7
+[reversing] 1 3 5 3 1 9 7 | 7 9 1 3 5 3 1
+[sorting] 9 9 5 4 7 2 1 0 | 0 1 2 4 5 7 9 9
+[copying] XY | XYXY
+[relations] E330 is parent of E756. E756 is parent of E397. Who is the ancestor 2 of E397? | E330
+[reversing] 5 7 8 | 8 7 5
+[reversing] 1 1 0 7 | 7 0 1 1
+[copying] GWBDF | GWBDFGWBDFGWBDF
+[relations] E44 is parent of E935. E935 is parent of E147. Who is the ancestor 2 of E147? | E44
+[reversing] 3 8 1 | 1 8 3
+[copying] WX | WXWXWX
+[sorting] 5 6 8 8 4 | 4 5 6 8 8
+[reversing] 9 0 8 0 9 7 3 6 6 | 6 6 3 7 9 0 8 0 9
+[relations] E208 is parent of E143. E143 is parent of E815. Who is the ancestor 2 of E815? | E208
+[relations] E837 is parent of E690. E690 is parent of E619. Who is the ancestor 2 of E619? | E837
+[sorting] 5 7 4 6 0 3 5 9 8 | 0 3 4 5 5 6 7 8 9
+[relations] E879 is parent of E726. E726 is parent of E405. Who is the ancestor 2 of E405? | E879
+[reversing] 3 3 4 5 0 2 1 4 | 4 1 2 0 5 4 3 3
+[reversing] 6 9 8 4 5 4 7 1 | 1 7 4 5 4 8 9 6
+[reversing] 4 7 1 3 3 7 3 0 | 0 3 7 3 3 1 7 4
+[addition] 41 + 300 | 341
+[copying] FTJRQF | FTJRQFFTJRQF
+[relations] E403 is parent of E648. E648 is parent of E797. Who is the ancestor 2 of E797? | E403
+[sorting] 3 1 0 5 9 4 3 | 0 1 3 3 4 5 9
+[reversing] 0 2 2 4 4 4 3 3 9 9 5 9 | 9 5 9 9 3 3 4 4 4 2 2 0
+[relations] E599 is parent of E528. Who is the ancestor 1 of E528? | E599
+[reversing] 3 3 5 5 3 | 3 5 5 3 3
+[reversing] 2 7 8 3 7 6 | 6 7 3 8 7 2
+[copying] NJ | NJNJNJNJ
+[addition] 85 + 408 | 493
+[sorting] 3 9 2 1 | 1 2 3 9
+[copying] CFUU | CFUUCFUUCFUU
+[addition] 2 + 4 | 6
+[relations] E569 is parent of E836. E836 is parent of E126. Who is the ancestor 2 of E126? | E569
+[addition] 22 + 55 | 77
+[reversing] 0 0 5 9 | 9 5 0 0
+[relations] E60 is parent of E152. E152 is parent of E912. Who is the ancestor 2 of E912? | E60
+[addition] 287 + 8 | 295
+[addition] 455 + 96 | 551
+[copying] SWUTF | SWUTFSWUTFSWUTFSWUTF
+[addition] 26 + 760 | 786
+[sorting] 7 0 9 9 9 4 5 4 0 | 0 0 4 4 5 7 9 9 9
+[sorting] 7 9 4 5 8 6 3 0 3 1 3 0 | 0 0 1 3 3 3 4 5 6 7 8 9
+[sorting] 9 3 8 7 6 | 3 6 7 8 9
+[copying] GZGE | GZGEGZGEGZGEGZGE
+[relations] E294 is parent of E903. Who is the ancestor 1 of E903? | E294
+[relations] E322 is parent of E661. Who is the ancestor 1 of E661? | E322
+[reversing] 1 8 8 | 8 8 1
+[sorting] 8 8 3 1 7 9 5 5 0 2 2 | 0 1 2 2 3 5 5 7 8 8 9
+[sorting] 1 2 2 2 4 2 8 9 0 1 1 3 | 0 1 1 1 2 2 2 2 3 4 8 9
+[addition] 6 + 66 | 72
+[copying] SWLORK | SWLORKSWLORK
+[relations] E234 is parent of E969. E969 is parent of E813. Who is the ancestor 2 of E813? | E234
+[addition] 23 + 73 | 96
+[copying] HTV | HTVHTV
+[addition] 96 + 877 | 973
+[reversing] 2 1 3 7 9 0 0 | 0 0 9 7 3 1 2
+[relations] E483 is parent of E95. Who is the ancestor 1 of E95? | E483
+[copying] JAIK | JAIKJAIKJAIKJAIK
+[addition] 84 + 49 | 133
+[addition] 1 + 18 | 19
+[relations] E786 is parent of E238. Who is the ancestor 1 of E238? | E786
+[relations] E603 is parent of E600. Who is the ancestor 1 of E600? | E603
+[addition] 77 + 357 | 434
+[copying] NHGF | NHGFNHGFNHGFNHGF
+[relations] E938 is parent of E802. E802 is parent of E454. Who is the ancestor 2 of E454? | E938
+[reversing] 9 3 8 4 4 6 1 9 0 | 0 9 1 6 4 4 8 3 9
+[relations] E531 is parent of E832. Who is the ancestor 1 of E832? | E531
+[addition] 919 + 6 | 925
+[reversing] 6 0 8 3 7 6 5 6 9 6 5 | 5 6 9 6 5 6 7 3 8 0 6
+[copying] AEG | AEGAEGAEGAEG
+[copying] PSB | PSBPSBPSB
+[copying] IOX | IOXIOXIOX
+[addition] 7 + 1 | 8
+[relations] E343 is parent of E544. Who is the ancestor 1 of E544? | E343
+[copying] DTEC | DTECDTEC
+[relations] E837 is parent of E773. E773 is parent of E688. Who is the ancestor 2 of E688? | E837
+[reversing] 8 8 1 7 1 4 4 7 | 7 4 4 1 7 1 8 8
+[addition] 72 + 6 | 78
+[copying] WV | WVWV
+[sorting] 5 9 6 7 4 | 4 5 6 7 9
+[sorting] 6 2 3 3 3 0 9 8 5 | 0 2 3 3 3 5 6 8 9
+[copying] LCE | LCELCELCE
+[copying] ORMXI | ORMXIORMXIORMXIORMXI
+[relations] E886 is parent of E153. Who is the ancestor 1 of E153? | E886
+[copying] IMI | IMIIMIIMIIMI
+[sorting] 0 0 3 6 3 7 1 | 0 0 1 3 3 6 7
+[sorting] 9 3 7 1 | 1 3 7 9
+[addition] 68 + 1 | 69
+[reversing] 0 6 6 9 | 9 6 6 0
+[relations] E563 is parent of E353. E353 is parent of E204. Who is the ancestor 2 of E204? | E563
+[reversing] 8 6 8 9 0 5 | 5 0 9 8 6 8
+[copying] SIVGXW | SIVGXWSIVGXWSIVGXWSIVGXW
+[relations] E234 is parent of E827. E827 is parent of E29. Who is the ancestor 2 of E29? | E234
+[copying] NVC | NVCNVCNVCNVC
+[copying] NI | NININI
+[addition] 5 + 1 | 6
+[copying] QNSLMT | QNSLMTQNSLMT
+[addition] 4 + 85 | 89
+[copying] FUGEDO | FUGEDOFUGEDOFUGEDOFUGEDO
+[relations] E584 is parent of E419. Who is the ancestor 1 of E419? | E584
+[copying] AMGK | AMGKAMGKAMGK
+[relations] E844 is parent of E349. Who is the ancestor 1 of E349? | E844
+[copying] IFKMEL | IFKMELIFKMELIFKMEL
+[addition] 581 + 478 | 1059
+[reversing] 2 1 2 9 6 5 1 1 9 | 9 1 1 5 6 9 2 1 2
+[copying] FT | FTFT
+[sorting] 1 0 0 6 7 8 7 | 0 0 1 6 7 7 8
+[addition] 91 + 48 | 139
+[reversing] 7 3 8 1 3 8 8 | 8 8 3 1 8 3 7
+[reversing] 3 3 1 9 8 | 8 9 1 3 3
+[addition] 1 + 6 | 7
+[reversing] 8 6 7 8 6 8 5 3 1 2 5 2 | 2 5 2 1 3 5 8 6 8 7 6 8
+[sorting] 3 6 3 8 2 2 0 5 | 0 2 2 3 3 5 6 8
+[reversing] 0 3 6 2 5 2 | 2 5 2 6 3 0
+[sorting] 7 1 6 6 3 0 | 0 1 3 6 6 7
+[copying] YYIZ | YYIZYYIZYYIZYYIZ
+[relations] E721 is parent of E248. E248 is parent of E890. Who is the ancestor 2 of E890? | E721
+[reversing] 7 3 9 5 5 7 0 8 2 7 1 3 | 3 1 7 2 8 0 7 5 5 9 3 7
+[copying] NM | NMNM
+[addition] 5 + 73 | 78
+[relations] E515 is parent of E618. E618 is parent of E306. Who is the ancestor 2 of E306? | E515
+[copying] PULZ | PULZPULZPULZPULZ
+[sorting] 2 9 0 4 3 5 1 1 4 | 0 1 1 2 3 4 4 5 9
+[sorting] 4 6 6 2 | 2 4 6 6
+[reversing] 1 2 3 6 | 6 3 2 1
+[addition] 75 + 30 | 105
+[copying] VQO | VQOVQOVQOVQO
+[reversing] 0 3 2 9 8 | 8 9 2 3 0
+[sorting] 1 5 6 2 | 1 2 5 6
+[addition] 23 + 42 | 65
+[reversing] 6 3 8 5 8 1 7 6 2 6 5 | 5 6 2 6 7 1 8 5 8 3 6
+[relations] E371 is parent of E752. E752 is parent of E833. Who is the ancestor 2 of E833? | E371
+[reversing] 4 2 0 6 2 4 | 4 2 6 0 2 4
+[reversing] 9 7 4 0 2 9 5 7 0 5 | 5 0 7 5 9 2 0 4 7 9
+[reversing] 8 9 8 2 | 2 8 9 8
+[copying] WNDGDV | WNDGDVWNDGDVWNDGDVWNDGDV
+[copying] ETGR | ETGRETGRETGRETGR
+[reversing] 7 8 6 6 6 | 6 6 6 8 7
+[relations] E535 is parent of E427. Who is the ancestor 1 of E427? | E535
+[addition] 52 + 19 | 71
+[copying] OVXV | OVXVOVXVOVXVOVXV
+[sorting] 2 2 5 6 | 2 2 5 6
+[relations] E134 is parent of E160. E160 is parent of E172. Who is the ancestor 2 of E172? | E134
+[addition] 7 + 50 | 57
+[relations] E92 is parent of E434. E434 is parent of E120. Who is the ancestor 2 of E120? | E92
+[addition] 98 + 65 | 163
+[addition] 5 + 3 | 8
+[reversing] 5 2 5 9 | 9 5 2 5
+[sorting] 8 5 4 5 6 2 6 9 0 5 7 8 | 0 2 4 5 5 5 6 6 7 8 8 9
+[copying] QOI | QOIQOIQOI
+[relations] E763 is parent of E245. E245 is parent of E247. Who is the ancestor 2 of E247? | E763
+[reversing] 1 8 5 0 0 2 9 5 | 5 9 2 0 0 5 8 1
+[addition] 78 + 4 | 82
+[reversing] 9 8 5 6 5 8 8 | 8 8 5 6 5 8 9
+[sorting] 6 5 7 1 | 1 5 6 7
+[reversing] 9 3 5 0 2 1 6 1 | 1 6 1 2 0 5 3 9
+[relations] E959 is parent of E686. Who is the ancestor 1 of E686? | E959
+[copying] DK | DKDKDKDK
+[reversing] 3 3 0 4 6 6 3 | 3 6 6 4 0 3 3
+[addition] 4 + 386 | 390
+[reversing] 9 2 5 6 | 6 5 2 9
+[reversing] 5 3 9 1 6 2 9 8 5 5 6 | 6 5 5 8 9 2 6 1 9 3 5
+[sorting] 8 1 9 8 4 0 3 0 8 2 0 8 | 0 0 0 1 2 3 4 8 8 8 8 9
+[relations] E807 is parent of E564. E564 is parent of E248. Who is the ancestor 2 of E248? | E807
+[relations] E794 is parent of E493. Who is the ancestor 1 of E493? | E794
+[addition] 8 + 0 | 8
+[addition] 799 + 507 | 1306
+[relations] E50 is parent of E732. Who is the ancestor 1 of E732? | E50
+[copying] JFGSKN | JFGSKNJFGSKN
+[relations] E468 is parent of E839. Who is the ancestor 1 of E839? | E468
+[sorting] 9 3 8 6 2 4 3 1 2 1 9 3 | 1 1 2 2 3 3 3 4 6 8 9 9
+[addition] 647 + 16 | 663
+[relations] E591 is parent of E661. E661 is parent of E918. Who is the ancestor 2 of E918? | E591
+[relations] E771 is parent of E581. Who is the ancestor 1 of E581? | E771
+[addition] 7 + 204 | 211
+[copying] UXS | UXSUXS
+[reversing] 9 7 6 7 4 5 3 2 7 7 1 5 | 5 1 7 7 2 3 5 4 7 6 7 9
+[addition] 94 + 5 | 99
+[addition] 872 + 33 | 905
+[relations] E488 is parent of E919. E919 is parent of E388. Who is the ancestor 2 of E388? | E488
+[reversing] 6 8 1 2 9 5 | 5 9 2 1 8 6
+[reversing] 3 6 5 9 9 2 0 0 | 0 0 2 9 9 5 6 3
+[copying] YNPOG | YNPOGYNPOGYNPOG
+[reversing] 9 0 9 | 9 0 9
+[sorting] 4 7 5 4 7 | 4 4 5 7 7
+[reversing] 3 1 8 5 0 5 2 6 | 6 2 5 0 5 8 1 3
+[addition] 0 + 24 | 24
+[reversing] 5 3 7 0 3 3 5 | 5 3 3 0 7 3 5
+[relations] E831 is parent of E625. Who is the ancestor 1 of E625? | E831
+[addition] 206 + 351 | 557
+[reversing] 3 4 6 8 9 2 2 6 0 3 | 3 0 6 2 2 9 8 6 4 3
+[addition] 7 + 864 | 871
+[copying] LHDSK | LHDSKLHDSKLHDSK
+[addition] 0 + 566 | 566
+[relations] E56 is parent of E838. E838 is parent of E260. Who is the ancestor 2 of E260? | E56
+[sorting] 6 0 4 0 1 6 3 1 5 5 6 | 0 0 1 1 3 4 5 5 6 6 6
+[relations] E232 is parent of E432. E432 is parent of E28. Who is the ancestor 2 of E28? | E232
+[addition] 5 + 606 | 611
+[sorting] 7 5 1 3 9 1 7 6 0 8 5 3 | 0 1 1 3 3 5 5 6 7 7 8 9
+[reversing] 3 6 2 3 8 3 7 | 7 3 8 3 2 6 3
+[copying] KY | KYKY
+[addition] 1 + 728 | 729
+[copying] PNT | PNTPNTPNTPNT
+[addition] 508 + 75 | 583
+[sorting] 7 4 8 7 3 6 2 | 2 3 4 6 7 7 8
+[reversing] 5 8 0 8 6 | 6 8 0 8 5
+[reversing] 4 2 0 7 6 6 2 8 4 | 4 8 2 6 6 7 0 2 4
+[sorting] 0 2 5 2 8 5 4 9 3 1 2 1 | 0 1 1 2 2 2 3 4 5 5 8 9
+[addition] 9 + 179 | 188
+[sorting] 8 1 8 8 4 | 1 4 8 8 8
+[reversing] 6 6 7 1 2 5 3 3 2 4 7 | 7 4 2 3 3 5 2 1 7 6 6
+[copying] DPAL | DPALDPALDPALDPAL
+[reversing] 7 4 3 5 7 7 | 7 7 5 3 4 7
+[relations] E262 is parent of E564. Who is the ancestor 1 of E564? | E262
+[copying] HQTTCR | HQTTCRHQTTCRHQTTCR
+[sorting] 1 2 7 7 | 1 2 7 7
+[addition] 798 + 88 | 886
+[copying] YVOHPJ | YVOHPJYVOHPJYVOHPJ
+[reversing] 8 2 2 5 8 3 2 6 | 6 2 3 8 5 2 2 8
+[sorting] 0 3 6 4 7 9 4 0 4 | 0 0 3 4 4 4 6 7 9
+[addition] 97 + 589 | 686
+[copying] NX | NXNXNXNX
+[addition] 137 + 20 | 157
+[copying] YNDL | YNDLYNDLYNDLYNDL
+[copying] ATM | ATMATMATMATM
+[reversing] 1 4 5 1 1 9 3 5 | 5 3 9 1 1 5 4 1
+[addition] 98 + 205 | 303
+[sorting] 9 6 3 5 8 1 4 | 1 3 4 5 6 8 9
+[sorting] 3 0 9 7 4 8 5 5 6 9 | 0 3 4 5 5 6 7 8 9 9
+[copying] MESGL | MESGLMESGLMESGL
+[relations] E305 is parent of E886. Who is the ancestor 1 of E886? | E305
+[relations] E460 is parent of E272. E272 is parent of E237. Who is the ancestor 2 of E237? | E460
+[relations] E295 is parent of E209. Who is the ancestor 1 of E209? | E295
+[reversing] 4 3 1 4 5 8 0 6 7 5 7 0 | 0 7 5 7 6 0 8 5 4 1 3 4
+[reversing] 3 2 0 9 | 9 0 2 3
+[copying] BMTA | BMTABMTABMTA
+[copying] IJK | IJKIJKIJK
+[reversing] 2 9 9 | 9 9 2
+[relations] E941 is parent of E821. Who is the ancestor 1 of E821? | E941
+[sorting] 9 0 8 0 0 6 8 4 8 5 | 0 0 0 4 5 6 8 8 8 9
+[copying] OFOP | OFOPOFOP
+[relations] E350 is parent of E535. E535 is parent of E963. Who is the ancestor 2 of E963? | E350
+[copying] GU | GUGUGUGU
+[relations] E661 is parent of E83. E83 is parent of E174. Who is the ancestor 2 of E174? | E661
+[reversing] 3 3 4 5 2 5 0 7 4 6 | 6 4 7 0 5 2 5 4 3 3
+[reversing] 3 6 0 2 | 2 0 6 3
+[relations] E165 is parent of E334. E334 is parent of E550. Who is the ancestor 2 of E550? | E165
+[relations] E654 is parent of E337. Who is the ancestor 1 of E337? | E654
+[addition] 3 + 9 | 12
+[reversing] 4 1 8 | 8 1 4
+[relations] E546 is parent of E620. Who is the ancestor 1 of E620? | E546
+[addition] 7 + 9 | 16
+[reversing] 9 9 5 3 6 0 4 9 4 3 1 | 1 3 4 9 4 0 6 3 5 9 9
+[reversing] 6 5 2 1 4 5 1 | 1 5 4 1 2 5 6
+[relations] E230 is parent of E477. Who is the ancestor 1 of E477? | E230
+[sorting] 5 4 6 6 3 3 7 6 5 8 1 | 1 3 3 4 5 5 6 6 6 7 8
+[sorting] 7 7 7 3 5 0 7 9 5 | 0 3 5 5 7 7 7 7 9
+[copying] AOJK | AOJKAOJK
+[addition] 5 + 58 | 63
+[addition] 47 + 863 | 910
+[sorting] 2 4 0 7 8 1 5 1 2 7 | 0 1 1 2 2 4 5 7 7 8
+[addition] 82 + 7 | 89
+[copying] SFPMFC | SFPMFCSFPMFC
+[addition] 223 + 16 | 239
+[copying] ZEMX | ZEMXZEMX
+[addition] 888 + 12 | 900
+[relations] E537 is parent of E709. Who is the ancestor 1 of E709? | E537
+[relations] E848 is parent of E126. E126 is parent of E885. Who is the ancestor 2 of E885? | E848
+[reversing] 1 1 9 5 6 3 9 1 | 1 9 3 6 5 9 1 1
+[reversing] 4 7 8 | 8 7 4
+[addition] 60 + 87 | 147
+[sorting] 0 9 8 9 0 5 4 7 3 4 | 0 0 3 4 4 5 7 8 9 9
+[relations] E798 is parent of E808. E808 is parent of E92. Who is the ancestor 2 of E92? | E798
+[addition] 731 + 64 | 795
+[relations] E2 is parent of E953. Who is the ancestor 1 of E953? | E2
+[addition] 378 + 910 | 1288
+[addition] 6 + 5 | 11
+[copying] KUK | KUKKUK
+[addition] 8 + 45 | 53
+[relations] E583 is parent of E89. E89 is parent of E284. Who is the ancestor 2 of E284? | E583
+[reversing] 0 7 0 9 0 8 2 4 4 0 | 0 4 4 2 8 0 9 0 7 0
+[relations] E87 is parent of E193. Who is the ancestor 1 of E193? | E87
+[addition] 969 + 928 | 1897
+[relations] E990 is parent of E723. Who is the ancestor 1 of E723? | E990
+[sorting] 3 8 5 0 5 0 7 5 5 4 8 | 0 0 3 4 5 5 5 5 7 8 8
+[copying] MP | MPMPMPMP
+[sorting] 6 3 6 9 7 9 | 3 6 6 7 9 9
+[sorting] 2 7 0 9 2 6 5 | 0 2 2 5 6 7 9
+[reversing] 6 0 6 2 6 0 3 2 9 2 8 2 | 2 8 2 9 2 3 0 6 2 6 0 6
+[reversing] 4 1 2 1 0 6 4 2 0 9 2 1 | 1 2 9 0 2 4 6 0 1 2 1 4
+[copying] SPZ | SPZSPZ
+[sorting] 1 8 3 3 8 4 2 6 4 3 | 1 2 3 3 3 4 4 6 8 8
+[copying] KF | KFKFKFKF
+[relations] E799 is parent of E880. Who is the ancestor 1 of E880? | E799
+[sorting] 7 6 4 8 2 5 4 8 5 2 9 | 2 2 4 4 5 5 6 7 8 8 9
+[sorting] 5 6 2 1 3 7 | 1 2 3 5 6 7
+[sorting] 7 9 9 7 2 9 7 6 6 | 2 6 6 7 7 7 9 9 9
+[sorting] 7 7 5 5 6 | 5 5 6 7 7
+[addition] 856 + 3 | 859
+[reversing] 5 3 9 4 3 8 1 2 0 | 0 2 1 8 3 4 9 3 5
+[relations] E157 is parent of E72. E72 is parent of E526. Who is the ancestor 2 of E526? | E157
+[sorting] 4 4 9 5 1 1 8 9 | 1 1 4 4 5 8 9 9
+[sorting] 2 9 6 1 1 3 6 7 7 | 1 1 2 3 6 6 7 7 9
+[addition] 44 + 92 | 136
+[reversing] 9 5 5 | 5 5 9
+[reversing] 0 4 4 1 1 8 6 7 | 7 6 8 1 1 4 4 0
+[addition] 531 + 4 | 535
+[reversing] 6 9 5 5 9 2 6 9 1 | 1 9 6 2 9 5 5 9 6
+[sorting] 4 2 4 2 4 4 6 | 2 2 4 4 4 4 6
+[copying] EEFNP | EEFNPEEFNPEEFNPEEFNP
+[addition] 7 + 3 | 10
+[relations] E942 is parent of E510. Who is the ancestor 1 of E510? | E942
+[addition] 70 + 0 | 70
+[sorting] 2 8 7 7 8 2 1 | 1 2 2 7 7 8 8
+[addition] 6 + 694 | 700
+[copying] EG | EGEGEG
+[sorting] 2 5 5 0 4 | 0 2 4 5 5
+[sorting] 0 3 2 7 9 0 | 0 0 2 3 7 9
+[relations] E942 is parent of E344. Who is the ancestor 1 of E344? | E942
+[addition] 56 + 13 | 69
+[relations] E418 is parent of E343. E343 is parent of E504. Who is the ancestor 2 of E504? | E418
+[relations] E814 is parent of E757. E757 is parent of E650. Who is the ancestor 2 of E650? | E814
+[copying] CM | CMCM
+[sorting] 7 6 9 2 5 | 2 5 6 7 9
+[copying] CUTX | CUTXCUTXCUTX
+[sorting] 5 6 9 2 1 3 5 | 1 2 3 5 5 6 9
+[reversing] 9 8 2 9 6 6 6 9 | 9 6 6 6 9 2 8 9
+[addition] 3 + 89 | 92
+[sorting] 5 9 9 2 5 6 5 4 6 3 5 1 | 1 2 3 4 5 5 5 5 6 6 9 9
+[relations] E526 is parent of E460. E460 is parent of E515. Who is the ancestor 2 of E515? | E526
+[relations] E86 is parent of E958. E958 is parent of E491. Who is the ancestor 2 of E491? | E86
+[reversing] 5 9 7 | 7 9 5
+[reversing] 1 8 5 7 7 6 | 6 7 7 5 8 1
+[reversing] 1 2 1 6 7 9 6 3 2 9 4 | 4 9 2 3 6 9 7 6 1 2 1
+[relations] E87 is parent of E956. Who is the ancestor 1 of E956? | E87
+[sorting] 2 5 0 1 3 2 3 2 5 7 2 2 | 0 1 2 2 2 2 2 3 3 5 5 7
+[copying] ZG | ZGZG
+[addition] 87 + 205 | 292
+[copying] PMAUO | PMAUOPMAUOPMAUOPMAUO
+[sorting] 9 0 9 1 2 5 5 4 5 9 | 0 1 2 4 5 5 5 9 9 9
+[reversing] 3 8 1 5 0 6 | 6 0 5 1 8 3
+[reversing] 7 2 6 0 2 1 | 1 2 0 6 2 7
+[reversing] 3 3 7 9 4 2 4 0 7 2 9 6 | 6 9 2 7 0 4 2 4 9 7 3 3
+[relations] E668 is parent of E685. E685 is parent of E878. Who is the ancestor 2 of E878? | E668
+[copying] IHU | IHUIHUIHUIHU
+[addition] 0 + 173 | 173
+[reversing] 1 6 7 0 6 2 4 1 0 0 6 7 | 7 6 0 0 1 4 2 6 0 7 6 1
+[copying] JUTCSV | JUTCSVJUTCSVJUTCSV
+[relations] E973 is parent of E561. Who is the ancestor 1 of E561? | E973
+[reversing] 2 8 2 1 8 | 8 1 2 8 2
+[reversing] 0 3 2 5 3 8 3 0 0 | 0 0 3 8 3 5 2 3 0
+[reversing] 4 0 0 9 9 0 0 | 0 0 9 9 0 0 4
+[addition] 7 + 153 | 160
+[sorting] 4 7 7 4 5 | 4 4 5 7 7
+[addition] 683 + 9 | 692
+[reversing] 3 7 1 3 3 7 5 6 5 8 2 | 2 8 5 6 5 7 3 3 1 7 3
+[sorting] 3 3 7 8 2 0 0 4 2 1 0 6 | 0 0 0 1 2 2 3 3 4 6 7 8
+[relations] E738 is parent of E529. E529 is parent of E137. Who is the ancestor 2 of E137? | E738
+[reversing] 6 4 0 4 6 1 7 2 | 2 7 1 6 4 0 4 6
+[reversing] 2 6 6 8 1 2 3 | 3 2 1 8 6 6 2
+[sorting] 2 8 3 7 3 8 4 | 2 3 3 4 7 8 8
+[sorting] 5 7 5 9 3 6 6 6 5 0 9 | 0 3 5 5 5 6 6 6 7 9 9
+[relations] E712 is parent of E698. Who is the ancestor 1 of E698? | E712
+[sorting] 1 6 9 1 0 9 2 8 1 | 0 1 1 1 2 6 8 9 9
+[addition] 71 + 3 | 74
+[sorting] 1 4 7 5 5 8 2 2 1 1 2 7 | 1 1 1 2 2 2 4 5 5 7 7 8
+[sorting] 1 7 0 1 8 0 9 1 6 8 5 8 | 0 0 1 1 1 5 6 7 8 8 8 9
+[copying] XFETJ | XFETJXFETJ
+[sorting] 5 0 8 1 4 5 7 1 3 | 0 1 1 3 4 5 5 7 8
+[relations] E575 is parent of E772. E772 is parent of E893. Who is the ancestor 2 of E893? | E575
+[copying] WOW | WOWWOWWOW
+[relations] E106 is parent of E763. E763 is parent of E27. Who is the ancestor 2 of E27? | E106
+[sorting] 9 9 0 3 | 0 3 9 9
+[addition] 1 + 8 | 9
+[sorting] 4 1 8 7 | 1 4 7 8
+[addition] 9 + 48 | 57
+[sorting] 4 6 5 2 1 | 1 2 4 5 6
+[relations] E719 is parent of E410. E410 is parent of E287. Who is the ancestor 2 of E287? | E719
+[sorting] 9 5 0 6 7 4 2 3 4 | 0 2 3 4 4 5 6 7 9
+[reversing] 4 6 1 6 0 | 0 6 1 6 4
+[relations] E534 is parent of E666. Who is the ancestor 1 of E666? | E534
+[reversing] 5 5 9 7 1 2 7 4 6 | 6 4 7 2 1 7 9 5 5
+[sorting] 2 7 2 3 3 6 9 1 | 1 2 2 3 3 6 7 9
+[copying] KSWY | KSWYKSWYKSWY
+[reversing] 0 4 4 1 | 1 4 4 0
+[reversing] 7 9 8 7 2 8 6 3 3 1 | 1 3 3 6 8 2 7 8 9 7
+[relations] E841 is parent of E501. Who is the ancestor 1 of E501? | E841
+[addition] 1 + 86 | 87
+[relations] E461 is parent of E117. E117 is parent of E782. Who is the ancestor 2 of E782? | E461
+[copying] KOJ | KOJKOJKOJKOJ
+[sorting] 4 7 8 7 1 7 0 1 9 2 | 0 1 1 2 4 7 7 7 8 9
+[copying] YKIWHS | YKIWHSYKIWHS
+[addition] 176 + 2 | 178
+[sorting] 2 6 3 8 2 7 9 4 5 | 2 2 3 4 5 6 7 8 9
+[reversing] 1 6 1 3 3 3 4 4 7 | 7 4 4 3 3 3 1 6 1
+[addition] 47 + 94 | 141
+[copying] DQMZB | DQMZBDQMZBDQMZB
+[addition] 206 + 7 | 213
+[addition] 13 + 90 | 103
+[reversing] 1 0 7 9 5 8 2 3 7 | 7 3 2 8 5 9 7 0 1
+[addition] 5 + 414 | 419
+[addition] 1 + 76 | 77
+[addition] 82 + 9 | 91
+[relations] E846 is parent of E355. E355 is parent of E111. Who is the ancestor 2 of E111? | E846
+[copying] GLADP | GLADPGLADP
+[relations] E632 is parent of E851. Who is the ancestor 1 of E851? | E632
+[relations] E612 is parent of E351. E351 is parent of E110. Who is the ancestor 2 of E110? | E612
+[sorting] 2 2 7 9 5 4 3 5 7 | 2 2 3 4 5 5 7 7 9
+[copying] AWO | AWOAWO
+[sorting] 2 7 1 9 2 5 9 5 | 1 2 2 5 5 7 9 9
+[reversing] 4 7 8 8 8 0 | 0 8 8 8 7 4
+[addition] 753 + 0 | 753
+[copying] OWBON | OWBONOWBON
+[sorting] 6 0 5 4 | 0 4 5 6
+[reversing] 7 3 9 6 9 1 2 0 1 7 5 | 5 7 1 0 2 1 9 6 9 3 7
+[addition] 7 + 18 | 25
+[reversing] 9 9 2 4 2 1 0 3 1 | 1 3 0 1 2 4 2 9 9
+[reversing] 5 0 8 9 1 5 | 5 1 9 8 0 5
+[relations] E58 is parent of E532. E532 is parent of E340. Who is the ancestor 2 of E340? | E58
+[reversing] 4 5 9 6 2 4 8 8 1 4 5 | 5 4 1 8 8 4 2 6 9 5 4
+[sorting] 3 3 3 8 6 | 3 3 3 6 8
+[reversing] 9 0 3 1 3 5 4 8 6 1 | 1 6 8 4 5 3 1 3 0 9
+[sorting] 6 6 2 1 4 5 2 4 9 4 | 1 2 2 4 4 4 5 6 6 9
+[addition] 440 + 5 | 445
+[relations] E526 is parent of E479. Who is the ancestor 1 of E479? | E526
+[copying] HXOBT | HXOBTHXOBTHXOBTHXOBT
+[reversing] 6 8 3 0 3 6 8 0 | 0 8 6 3 0 3 8 6
+[relations] E646 is parent of E814. E814 is parent of E380. Who is the ancestor 2 of E380? | E646
+[copying] PQLQV | PQLQVPQLQVPQLQVPQLQV
+[relations] E240 is parent of E165. Who is the ancestor 1 of E165? | E240
+[relations] E300 is parent of E969. E969 is parent of E738. Who is the ancestor 2 of E738? | E300
+[addition] 6 + 678 | 684
+[reversing] 6 0 2 | 2 0 6
+[addition] 5 + 369 | 374
+[relations] E752 is parent of E314. E314 is parent of E414. Who is the ancestor 2 of E414? | E752
+[addition] 87 + 693 | 780
+[addition] 159 + 24 | 183
+[addition] 22 + 45 | 67
+[addition] 77 + 76 | 153
+[copying] DLYEWQ | DLYEWQDLYEWQDLYEWQDLYEWQ
+[reversing] 6 9 4 4 7 3 | 3 7 4 4 9 6
+[reversing] 0 5 1 3 8 | 8 3 1 5 0
+[reversing] 8 4 1 1 1 7 1 4 0 2 5 | 5 2 0 4 1 7 1 1 1 4 8
+[reversing] 1 3 7 9 6 9 9 7 3 1 9 6 | 6 9 1 3 7 9 9 6 9 7 3 1
+[sorting] 7 4 2 8 6 2 6 6 | 2 2 4 6 6 6 7 8
+[copying] JQF | JQFJQFJQFJQF
+[addition] 7 + 6 | 13
+[reversing] 0 2 3 0 6 8 | 8 6 0 3 2 0
+[sorting] 5 7 6 5 7 0 3 0 0 8 | 0 0 0 3 5 5 6 7 7 8
+[addition] 450 + 865 | 1315
+[sorting] 6 1 1 2 9 6 | 1 1 2 6 6 9
+[relations] E48 is parent of E306. E306 is parent of E157. Who is the ancestor 2 of E157? | E48
+[copying] BXTQYI | BXTQYIBXTQYIBXTQYI
+[reversing] 4 1 6 4 7 | 7 4 6 1 4
+[relations] E225 is parent of E150. E150 is parent of E782. Who is the ancestor 2 of E782? | E225
+[reversing] 4 7 8 7 1 5 3 6 2 | 2 6 3 5 1 7 8 7 4
+[sorting] 9 0 6 4 7 | 0 4 6 7 9
+[copying] GF | GFGFGFGF
+[relations] E818 is parent of E129. Who is the ancestor 1 of E129? | E818
+[copying] LNTJ | LNTJLNTJ
+[copying] ZN | ZNZN
+[addition] 80 + 22 | 102
+[relations] E755 is parent of E328. Who is the ancestor 1 of E328? | E755
+[addition] 6 + 24 | 30
+[addition] 1 + 703 | 704
+[copying] WLSP | WLSPWLSPWLSPWLSP
+[copying] YQU | YQUYQUYQUYQU
+[relations] E502 is parent of E469. E469 is parent of E901. Who is the ancestor 2 of E901? | E502
+[addition] 2 + 9 | 11
+[reversing] 7 7 7 1 2 1 9 3 2 | 2 3 9 1 2 1 7 7 7
+[relations] E5 is parent of E747. Who is the ancestor 1 of E747? | E5
+[relations] E13 is parent of E437. E437 is parent of E475. Who is the ancestor 2 of E475? | E13
+[reversing] 4 7 5 3 | 3 5 7 4
+[copying] ELERG | ELERGELERGELERG
+[copying] UJEE | UJEEUJEEUJEE
+[relations] E597 is parent of E522. Who is the ancestor 1 of E522? | E597
+[reversing] 7 9 2 | 2 9 7
+[addition] 9 + 810 | 819
+[reversing] 6 1 5 5 | 5 5 1 6
+[relations] E702 is parent of E63. E63 is parent of E760. Who is the ancestor 2 of E760? | E702
+[relations] E975 is parent of E30. Who is the ancestor 1 of E30? | E975
+[relations] E57 is parent of E861. Who is the ancestor 1 of E861? | E57
+[sorting] 0 0 8 6 9 6 2 0 9 | 0 0 0 2 6 6 8 9 9
+[reversing] 5 7 8 6 6 9 8 | 8 9 6 6 8 7 5
+[copying] QJKSN | QJKSNQJKSN
+[addition] 77 + 164 | 241
+[copying] NSPRY | NSPRYNSPRY
+[addition] 39 + 78 | 117
+[copying] PAOAUR | PAOAURPAOAURPAOAUR
+[addition] 90 + 740 | 830
+[copying] TFBJ | TFBJTFBJTFBJTFBJ
+[addition] 618 + 65 | 683
+[addition] 66 + 726 | 792
+[copying] GOYVUB | GOYVUBGOYVUBGOYVUBGOYVUB
+[addition] 29 + 6 | 35
+[copying] MTYT | MTYTMTYTMTYT
+[sorting] 4 6 6 2 7 1 2 | 1 2 2 4 6 6 7
+[relations] E344 is parent of E326. Who is the ancestor 1 of E326? | E344
+[relations] E826 is parent of E438. E438 is parent of E128. Who is the ancestor 2 of E128? | E826
+[addition] 428 + 3 | 431
+[reversing] 9 3 7 4 2 3 1 7 2 8 | 8 2 7 1 3 2 4 7 3 9
+[sorting] 6 8 1 9 0 7 7 0 7 2 8 | 0 0 1 2 6 7 7 7 8 8 9
+[sorting] 7 4 3 9 5 5 7 5 7 3 3 | 3 3 3 4 5 5 5 7 7 7 9
+[reversing] 8 6 5 4 2 | 2 4 5 6 8
+[relations] E959 is parent of E543. E543 is parent of E271. Who is the ancestor 2 of E271? | E959
+[relations] E767 is parent of E949. Who is the ancestor 1 of E949? | E767
+[sorting] 1 4 3 3 9 | 1 3 3 4 9
+[sorting] 4 9 4 3 5 2 8 7 0 | 0 2 3 4 4 5 7 8 9
+[reversing] 1 6 7 | 7 6 1
+[sorting] 4 4 5 9 | 4 4 5 9
+[sorting] 3 5 2 7 7 | 2 3 5 7 7
+[addition] 661 + 66 | 727
+[sorting] 6 8 7 3 8 7 7 6 | 3 6 6 7 7 7 8 8
+[relations] E181 is parent of E719. Who is the ancestor 1 of E719? | E181
+[addition] 5 + 6 | 11
+[relations] E248 is parent of E94. E94 is parent of E625. Who is the ancestor 2 of E625? | E248
+[copying] DQA | DQADQA
+[sorting] 5 2 3 1 2 2 3 6 | 1 2 2 2 3 3 5 6
+[addition] 7 + 83 | 90
+[reversing] 2 1 8 5 8 6 5 7 7 0 6 4 | 4 6 0 7 7 5 6 8 5 8 1 2
+[addition] 298 + 5 | 303
+[sorting] 2 1 6 7 0 2 1 3 2 6 | 0 1 1 2 2 2 3 6 6 7
+[sorting] 0 2 2 1 0 5 5 5 2 2 | 0 0 1 2 2 2 2 5 5 5
+[relations] E188 is parent of E350. E350 is parent of E503. Who is the ancestor 2 of E503? | E188
+[relations] E827 is parent of E281. E281 is parent of E909. Who is the ancestor 2 of E909? | E827
+[reversing] 6 0 6 0 4 3 | 3 4 0 6 0 6
+[relations] E380 is parent of E316. Who is the ancestor 1 of E316? | E380
+[copying] GHF | GHFGHFGHFGHF
+[copying] KQKBH | KQKBHKQKBH
+[copying] EKIUP | EKIUPEKIUP
+[sorting] 3 1 0 2 7 2 9 0 5 5 1 | 0 0 1 1 2 2 3 5 5 7 9
+[relations] E759 is parent of E960. E960 is parent of E121. Who is the ancestor 2 of E121? | E759
+[reversing] 1 4 8 3 8 3 8 0 6 | 6 0 8 3 8 3 8 4 1
+[copying] WOZW | WOZWWOZW
+[addition] 557 + 17 | 574
+[sorting] 7 3 3 7 6 3 0 6 8 6 | 0 3 3 3 6 6 6 7 7 8
+[reversing] 6 6 3 2 4 1 7 5 7 1 | 1 7 5 7 1 4 2 3 6 6
+[sorting] 6 7 5 3 5 4 8 1 5 7 3 | 1 3 3 4 5 5 5 6 7 7 8
+[sorting] 0 7 7 4 2 2 9 | 0 2 2 4 7 7 9
+[reversing] 0 3 5 4 9 1 0 | 0 1 9 4 5 3 0
+[reversing] 8 0 1 7 9 4 2 6 2 6 0 8 | 8 0 6 2 6 2 4 9 7 1 0 8
+[addition] 12 + 51 | 63
+[reversing] 1 3 5 6 8 5 9 8 5 1 1 | 1 1 5 8 9 5 8 6 5 3 1
+[sorting] 2 3 0 0 5 6 5 7 6 9 7 | 0 0 2 3 5 5 6 6 7 7 9
+[sorting] 4 6 8 7 6 | 4 6 6 7 8
+[addition] 42 + 496 | 538
+[reversing] 5 7 4 3 4 3 7 2 9 | 9 2 7 3 4 3 4 7 5
+[addition] 1 + 20 | 21
+[sorting] 2 0 7 9 5 5 6 6 7 | 0 2 5 5 6 6 7 7 9
+[sorting] 2 9 7 4 2 7 | 2 2 4 7 7 9
+[reversing] 6 2 3 0 7 6 2 8 7 | 7 8 2 6 7 0 3 2 6
+[copying] KLQM | KLQMKLQM
+[relations] E262 is parent of E724. E724 is parent of E462. Who is the ancestor 2 of E462? | E262
+[addition] 84 + 1 | 85
+[sorting] 1 2 9 8 | 1 2 8 9
+[reversing] 4 3 6 6 4 2 4 | 4 2 4 6 6 3 4
+[copying] ZSTT | ZSTTZSTTZSTT
+[relations] E800 is parent of E78. E78 is parent of E777. Who is the ancestor 2 of E777? | E800
+[relations] E199 is parent of E264. Who is the ancestor 1 of E264? | E199
+[reversing] 8 7 1 1 5 8 6 | 6 8 5 1 1 7 8
+[reversing] 3 0 7 7 5 2 4 4 5 | 5 4 4 2 5 7 7 0 3
+[relations] E848 is parent of E307. Who is the ancestor 1 of E307? | E848
+[copying] RB | RBRBRB
+[reversing] 8 7 5 0 9 4 2 2 | 2 2 4 9 0 5 7 8
+[reversing] 4 5 0 8 5 4 2 | 2 4 5 8 0 5 4
+[reversing] 9 0 8 | 8 0 9
+[sorting] 7 0 7 1 3 8 | 0 1 3 7 7 8
+[sorting] 3 7 4 7 | 3 4 7 7
+[reversing] 8 6 9 5 2 5 6 2 4 1 2 | 2 1 4 2 6 5 2 5 9 6 8
+[copying] PGUT | PGUTPGUTPGUT
+[addition] 727 + 4 | 731
+[copying] KLNPU | KLNPUKLNPUKLNPU
+[sorting] 8 7 2 1 2 1 1 6 7 0 8 | 0 1 1 1 2 2 6 7 7 8 8
+[copying] QRUEJ | QRUEJQRUEJQRUEJ
+[reversing] 0 4 3 4 6 6 8 4 5 | 5 4 8 6 6 4 3 4 0
+[copying] FCTW | FCTWFCTW
+[sorting] 3 3 8 9 4 7 | 3 3 4 7 8 9
+[sorting] 9 7 5 5 5 3 1 5 | 1 3 5 5 5 5 7 9
+[sorting] 8 4 0 7 7 4 0 7 6 7 3 | 0 0 3 4 4 6 7 7 7 7 8
+[relations] E553 is parent of E330. E330 is parent of E848. Who is the ancestor 2 of E848? | E553
+[reversing] 4 7 1 4 1 0 5 2 7 0 7 4 | 4 7 0 7 2 5 0 1 4 1 7 4
+[relations] E428 is parent of E635. E635 is parent of E694. Who is the ancestor 2 of E694? | E428
+[addition] 9 + 9 | 18
+[relations] E372 is parent of E304. E304 is parent of E778. Who is the ancestor 2 of E778? | E372
+[reversing] 8 2 2 | 2 2 8
+[sorting] 3 7 0 8 9 2 8 5 9 0 9 1 | 0 0 1 2 3 5 7 8 8 9 9 9
+[reversing] 5 4 7 6 3 7 1 | 1 7 3 6 7 4 5
+[reversing] 9 4 5 4 3 3 6 6 5 | 5 6 6 3 3 4 5 4 9
+[relations] E574 is parent of E646. Who is the ancestor 1 of E646? | E574
+[copying] UG | UGUGUGUG
+[addition] 5 + 43 | 48
+[reversing] 3 1 3 0 8 5 0 9 4 6 | 6 4 9 0 5 8 0 3 1 3
+[reversing] 3 1 6 6 7 0 | 0 7 6 6 1 3
+[copying] MEWTK | MEWTKMEWTKMEWTK
+[sorting] 5 1 7 0 0 2 | 0 0 1 2 5 7
+[copying] FXJCME | FXJCMEFXJCME
+[copying] LJRPDI | LJRPDILJRPDILJRPDILJRPDI
+[sorting] 1 1 2 5 0 6 6 4 9 | 0 1 1 2 4 5 6 6 9
+[sorting] 1 2 4 2 9 | 1 2 2 4 9
+[copying] LLISVH | LLISVHLLISVH
+[relations] E320 is parent of E106. E106 is parent of E449. Who is the ancestor 2 of E449? | E320
+[sorting] 8 9 2 0 1 4 4 4 5 | 0 1 2 4 4 4 5 8 9
+[reversing] 4 1 2 4 | 4 2 1 4
+[copying] AWDLA | AWDLAAWDLA
+[reversing] 7 2 1 | 1 2 7
+[sorting] 0 1 9 1 6 7 0 3 5 9 2 | 0 0 1 1 2 3 5 6 7 9 9
+[reversing] 4 6 7 7 0 1 4 5 2 | 2 5 4 1 0 7 7 6 4
+[relations] E51 is parent of E971. Who is the ancestor 1 of E971? | E51
+[relations] E435 is parent of E438. E438 is parent of E611. Who is the ancestor 2 of E611? | E435
+[relations] E385 is parent of E170. Who is the ancestor 1 of E170? | E385
+[relations] E260 is parent of E390. Who is the ancestor 1 of E390? | E260
+[addition] 0 + 738 | 738
+[copying] QPLN | QPLNQPLNQPLNQPLN
+[copying] FE | FEFEFEFE
+[sorting] 9 1 0 5 8 | 0 1 5 8 9
+[copying] QG | QGQG
+[reversing] 0 4 1 7 4 2 7 4 5 3 7 0 | 0 7 3 5 4 7 2 4 7 1 4 0
+[reversing] 9 1 9 1 9 0 5 8 5 3 7 | 7 3 5 8 5 0 9 1 9 1 9
+[relations] E876 is parent of E9. E9 is parent of E126. Who is the ancestor 2 of E126? | E876
+[reversing] 2 3 0 1 | 1 0 3 2
+[reversing] 5 6 8 2 5 9 | 9 5 2 8 6 5
+[addition] 349 + 8 | 357
+[addition] 428 + 40 | 468
+[relations] E801 is parent of E780. Who is the ancestor 1 of E780? | E801
+[addition] 72 + 2 | 74
+[reversing] 9 2 9 4 9 4 8 8 2 0 4 | 4 0 2 8 8 4 9 4 9 2 9
+[copying] MEQDXL | MEQDXLMEQDXLMEQDXL
+[sorting] 2 0 5 3 8 3 3 7 4 7 4 3 | 0 2 3 3 3 3 4 4 5 7 7 8
+[relations] E708 is parent of E34. E34 is parent of E690. Who is the ancestor 2 of E690? | E708
+[addition] 567 + 1 | 568
+[copying] IVKSP | IVKSPIVKSP
+[copying] MXQEFO | MXQEFOMXQEFOMXQEFO
+[addition] 7 + 73 | 80
+[relations] E551 is parent of E438. Who is the ancestor 1 of E438? | E551
+[copying] CZAFWT | CZAFWTCZAFWTCZAFWTCZAFWT
+[sorting] 1 7 0 5 1 4 7 8 9 6 | 0 1 1 4 5 6 7 7 8 9
+[copying] GOGIOU | GOGIOUGOGIOU
+[copying] SQA | SQASQASQA
+[relations] E145 is parent of E620. Who is the ancestor 1 of E620? | E145
+[addition] 3 + 4 | 7
+[relations] E54 is parent of E634. Who is the ancestor 1 of E634? | E54
+[copying] REHRIA | REHRIAREHRIAREHRIA
+[reversing] 0 7 9 3 5 5 4 | 4 5 5 3 9 7 0
+[addition] 76 + 3 | 79
+[reversing] 8 3 4 | 4 3 8
+[addition] 586 + 12 | 598
+[copying] ZOCV | ZOCVZOCVZOCVZOCV
+[reversing] 7 9 2 | 2 9 7
+[copying] JLJ | JLJJLJJLJ
+[addition] 48 + 741 | 789
+[relations] E582 is parent of E718. Who is the ancestor 1 of E718? | E582
+[reversing] 3 7 2 2 4 3 | 3 4 2 2 7 3
+[sorting] 2 6 9 5 0 7 1 2 5 6 8 | 0 1 2 2 5 5 6 6 7 8 9
+[reversing] 0 3 5 0 0 1 3 | 3 1 0 0 5 3 0
+[sorting] 1 4 9 3 0 2 3 0 9 | 0 0 1 2 3 3 4 9 9
+[addition] 72 + 838 | 910
+[relations] E481 is parent of E809. Who is the ancestor 1 of E809? | E481
+[addition] 15 + 466 | 481
+[relations] E625 is parent of E968. Who is the ancestor 1 of E968? | E625
+[relations] E5 is parent of E184. E184 is parent of E923. Who is the ancestor 2 of E923? | E5
+[addition] 674 + 64 | 738
+[copying] VRJDKW | VRJDKWVRJDKWVRJDKW
+[relations] E107 is parent of E144. Who is the ancestor 1 of E144? | E107
+[relations] E855 is parent of E742. E742 is parent of E812. Who is the ancestor 2 of E812? | E855
+[addition] 46 + 686 | 732
+[sorting] 0 0 9 6 7 1 5 9 8 9 | 0 0 1 5 6 7 8 9 9 9
+[reversing] 7 8 3 | 3 8 7
+[sorting] 4 0 7 7 2 0 6 | 0 0 2 4 6 7 7
+[copying] JQSGVD | JQSGVDJQSGVDJQSGVD
+[addition] 586 + 36 | 622
+[copying] XQI | XQIXQIXQI

@@ -1,0 +1,63 @@
+{
+  "normal": {
+    "total": 8723,
+    "unique": 8460,
+    "dup_rate": 3.015017769116135,
+    "task_distribution": {
+      "relations": 1746,
+      "sorting": 1744,
+      "reversing": 1744,
+      "addition": 1745,
+      "copying": 1744
+    }
+  },
+  "deduplicated": {
+    "total": 8723,
+    "unique": 8723,
+    "dup_rate": 0.0,
+    "task_distribution": {
+      "addition": 1745,
+      "reversing": 1744,
+      "relations": 1744,
+      "copying": 1744,
+      "sorting": 1746
+    }
+  },
+  "duplicated": {
+    "total": 8723,
+    "unique": 4561,
+    "dup_rate": 47.712942794910006,
+    "task_distribution": {
+      "addition": 1745,
+      "copying": 1744,
+      "relations": 1744,
+      "reversing": 1745,
+      "sorting": 1745
+    }
+  },
+  "validation": {
+    "total": 1000,
+    "unique": 996,
+    "dup_rate": 0.40000000000000036,
+    "task_distribution": {
+      "addition": 208,
+      "sorting": 192,
+      "relations": 186,
+      "reversing": 207,
+      "copying": 207
+    }
+  },
+  "config": {
+    "seed": 1337,
+    "total_examples": 10000,
+    "train_ratio": 0.9,
+    "mix": {
+      "sorting": 0.2,
+      "reversing": 0.2,
+      "addition": 0.2,
+      "copying": 0.2,
+      "relations": 0.2
+    },
+    "duplicate_multiplier": 10
+  }
+}
