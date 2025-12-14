@@ -25,15 +25,36 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+# Import custom modules for metrics and plotting
+try:
+    from metrics import compute_train_exact_match, compute_ngram_overlap, compute_generation_entropy_stats
+    from plots import generate_all_training_plots
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+    print("WARNING: metrics.py or plots.py not found. Advanced metrics disabled.")
+
 # ---------- Repro / device ----------
-def set_seed(seed:int):
+def set_seed(seed: int, deterministic: bool = False):
+    """Set random seeds for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     try:
         torch.cuda.manual_seed_all(seed)
+        if deterministic:
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
     except Exception:
         pass
+
+
+def get_eval_rng(seed: int):
+    """
+    Create a separate RNG for evaluation sampling.
+    Keeps eval sampling reproducible independent of training randomness.
+    """
+    return np.random.default_rng(seed + 42)
 
 # ---------- Small MiniGPT model (causal LM) ----------
 class TokenEmbedding(nn.Module):
@@ -177,6 +198,7 @@ class MultiHeadSelfAttention(nn.Module):
         return self.out(out)
 
 class FeedForward(nn.Module):
+    """Standard GELU FeedForward network."""
     def __init__(self, d_model:int, d_ff:int):
         super().__init__()
         self.net = nn.Sequential(
@@ -187,13 +209,37 @@ class FeedForward(nn.Module):
     def forward(self, x:torch.Tensor):
         return self.net(x)
 
+
+class SwiGLUFeedForward(nn.Module):
+    """
+    SwiGLU FeedForward network (improved FFN from LLaMA/PaLM).
+    Uses gating mechanism: SiLU(xW1) * (xW3) followed by W2.
+    ~13% more params but better quality per FLOP.
+    """
+    def __init__(self, d_model: int, d_ff: int):
+        super().__init__()
+        # Note: d_ff is the hidden dimension, we use 2/3 * d_ff for gated variant
+        # to maintain similar param count as standard FFN
+        hidden_dim = int(2 * d_ff / 3)
+        self.w1 = nn.Linear(d_model, hidden_dim, bias=False)
+        self.w2 = nn.Linear(hidden_dim, d_model, bias=False)
+        self.w3 = nn.Linear(d_model, hidden_dim, bias=False)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # SwiGLU: (SiLU(xW1) * xW3) W2
+        return self.w2(F.silu(self.w1(x)) * self.w3(x))
+
 class TransformerBlock(nn.Module):
-    def __init__(self, d_model:int, n_heads:int, d_ff:int, dropout:float=0.0, use_rope:bool=True):
+    def __init__(self, d_model:int, n_heads:int, d_ff:int, dropout:float=0.0, use_rope:bool=True, use_swiglu:bool=False):
         super().__init__()
         self.ln1 = nn.LayerNorm(d_model)
         self.attn = MultiHeadSelfAttention(d_model, n_heads, causal=True, use_rope=use_rope)
         self.ln2 = nn.LayerNorm(d_model)
-        self.ffn = FeedForward(d_model, d_ff)
+        # Choose FFN type based on use_swiglu
+        if use_swiglu:
+            self.ffn = SwiGLUFeedForward(d_model, d_ff)
+        else:
+            self.ffn = FeedForward(d_model, d_ff)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x:torch.Tensor):
@@ -206,7 +252,7 @@ class TransformerBlock(nn.Module):
         return x
 
 class MiniGPT(nn.Module):
-    def __init__(self, vocab_size:int, max_len:int, d_model:int, n_heads:int, n_layers:int, d_ff:int, dropout:float=0.0, use_checkpoint:bool=False, use_rope:bool=True):
+    def __init__(self, vocab_size:int, max_len:int, d_model:int, n_heads:int, n_layers:int, d_ff:int, dropout:float=0.0, use_checkpoint:bool=False, use_rope:bool=True, use_swiglu:bool=False):
         super().__init__()
         self.tok_emb = TokenEmbedding(vocab_size, d_model)
         self.use_rope = use_rope
@@ -216,7 +262,7 @@ class MiniGPT(nn.Module):
             self.pos_emb = PositionalEmbedding(max_len, d_model)
         
         self.drop = nn.Dropout(dropout)
-        self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads, d_ff, dropout, use_rope=use_rope) for _ in range(n_layers)])
+        self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads, d_ff, dropout, use_rope=use_rope, use_swiglu=use_swiglu) for _ in range(n_layers)])
         self.ln_f = nn.LayerNorm(d_model)
         self.head = nn.Linear(d_model, vocab_size, bias=False)
         self.max_len = max_len
@@ -242,7 +288,7 @@ class MiniGPT(nn.Module):
             # checkpoint in groups to save memory - split blocks into chunks
             # naive: checkpoint each block (slower but memory-friendly)
             for blk in self.blocks:
-                x = checkpoint(blk, x)
+                x = checkpoint(blk, x, use_reentrant=False)
         else:
             for blk in self.blocks:
                 x = blk(x)
@@ -331,17 +377,226 @@ class CurriculumDataset(Dataset):
         }
 
 
-def collate_fn(batch:List[dict], pad_id:int, max_len:int):
-    # batch: list of {"ids": tensor([...]), "raw": str}
+# ---------- Task-Based Curriculum ----------
+# Define task difficulty stages (easier tasks first)
+TASK_DIFFICULTY_STAGES = [
+    # Stage 0: Easiest - simple copying
+    {"tasks": ["copy"], "description": "Copy/repeat tasks"},
+    # Stage 1: Reversing (needs to understand order)
+    {"tasks": ["rev"], "description": "Reverse sequences"},
+    # Stage 2: Easy addition (1-2 digit)
+    {"tasks": ["add"], "max_input_len": 15, "description": "Easy addition"},
+    # Stage 3: Easy sorting (short lists)
+    {"tasks": ["sort"], "max_input_len": 25, "description": "Easy sorting"},
+    # Stage 4: Hard addition (3+ digit)
+    {"tasks": ["add"], "description": "All addition"},
+    # Stage 5: Hard sorting (long lists)
+    {"tasks": ["sort"], "description": "All sorting"},
+    # Stage 6: Relations (hardest - needs reasoning)
+    {"tasks": ["rel"], "description": "Relation reasoning"},
+]
+
+
+def extract_task_from_raw(raw: str) -> str:
+    """Extract task type from raw example string."""
+    if raw is None:
+        return "unknown"
+    raw = str(raw).strip()
+    # Format: [task] input | output
+    if raw.startswith("[") and "]" in raw:
+        task = raw[1:raw.index("]")]
+        return task.lower()
+    return "unknown"
+
+
+def get_example_difficulty(raw: str, encoded_len: int) -> int:
+    """
+    Score example difficulty (0 = easiest, higher = harder).
+    Used for fine-grained ordering within stages.
+    """
+    task = extract_task_from_raw(raw)
+    
+    # Base difficulty by task type
+    task_base = {
+        "copy": 0,
+        "rev": 100,
+        "add": 200,
+        "sort": 300,
+        "rel": 400,
+    }.get(task, 500)
+    
+    # Add length-based sub-difficulty
+    return task_base + encoded_len
+
+
+class TaskCurriculumDataset(Dataset):
+    """
+    Curriculum dataset that introduces tasks progressively by semantic difficulty.
+    
+    Instead of filtering by sequence length, this filters by task TYPE,
+    introducing easier tasks (copy, reverse) before harder ones (addition, relations).
+    """
+    
+    def __init__(self, base_dataset: PickleDataset, max_stage: int = 0):
+        self.base_dataset = base_dataset
+        self.max_stage = max_stage
+        self.stages = TASK_DIFFICULTY_STAGES
+        
+        # Pre-compute task type for each example
+        self.example_tasks = []
+        self.example_difficulties = []
+        for i in range(len(base_dataset)):
+            raw = base_dataset.raw[i] if base_dataset.raw else None
+            task = extract_task_from_raw(raw)
+            self.example_tasks.append(task)
+            encoded_len = len(base_dataset.encoded[i])
+            self.example_difficulties.append(get_example_difficulty(raw, encoded_len))
+        
+        # Count tasks
+        task_counts = defaultdict(int)
+        for t in self.example_tasks:
+            task_counts[t] += 1
+        print(f"[TaskCurriculum] Dataset task distribution: {dict(task_counts)}")
+        
+        self._rebuild_indices()
+    
+    def _rebuild_indices(self):
+        """Rebuild valid indices based on current max_stage."""
+        self.valid_indices = []
+        
+        # Collect allowed tasks from stages 0 to max_stage
+        allowed_tasks = set()
+        max_input_lens = {}  # task -> max input length (if specified)
+        
+        for stage_idx in range(min(self.max_stage + 1, len(self.stages))):
+            stage = self.stages[stage_idx]
+            for task in stage["tasks"]:
+                allowed_tasks.add(task)
+                # Update max_input_len (later stages may remove the limit)
+                if "max_input_len" in stage:
+                    if task not in max_input_lens or max_input_lens[task] < stage["max_input_len"]:
+                        max_input_lens[task] = stage["max_input_len"]
+                else:
+                    # No limit - remove any previous limit
+                    max_input_lens[task] = float('inf')
+        
+        # Filter examples
+        for i in range(len(self.base_dataset)):
+            task = self.example_tasks[i]
+            if task in allowed_tasks:
+                # Check input length constraint
+                encoded_len = len(self.base_dataset.encoded[i])
+                max_len = max_input_lens.get(task, float('inf'))
+                if encoded_len <= max_len or max_len == float('inf'):
+                    self.valid_indices.append(i)
+        
+        # Sort by difficulty for smoother curriculum within stage
+        self.valid_indices.sort(key=lambda i: self.example_difficulties[i])
+    
+    def set_stage(self, new_stage: int):
+        """Update curriculum stage and rebuild indices."""
+        self.max_stage = min(new_stage, len(self.stages) - 1)
+        self._rebuild_indices()
+    
+    def get_current_stage_info(self) -> dict:
+        """Get info about current curriculum stage."""
+        if self.max_stage < len(self.stages):
+            stage = self.stages[self.max_stage]
+            return {
+                "stage": self.max_stage,
+                "tasks": stage["tasks"],
+                "description": stage.get("description", ""),
+                "num_examples": len(self.valid_indices)
+            }
+        return {"stage": self.max_stage, "tasks": ["all"], "num_examples": len(self.valid_indices)}
+    
+    def __len__(self):
+        return len(self.valid_indices)
+    
+    def __getitem__(self, idx):
+        real_idx = self.valid_indices[idx]
+        return self.base_dataset[real_idx]
+    
+    def get_stats(self) -> dict:
+        """Return stats about current curriculum subset."""
+        if not self.valid_indices:
+            return {"count": 0, "tasks": {}}
+        
+        task_counts = defaultdict(int)
+        for i in self.valid_indices:
+            task_counts[self.example_tasks[i]] += 1
+        
+        return {
+            "count": len(self.valid_indices),
+            "tasks": dict(task_counts),
+            "stage": self.max_stage,
+            "stage_info": self.get_current_stage_info()
+        }
+
+
+
+def collate_fn(batch:List[dict], pad_id:int, max_len:int, sep_token_id:int = None):
+    """
+    Collate function that also creates a loss mask.
+    
+    The loss mask is 1.0 for output tokens (after separator "|") and 0.0 for input tokens.
+    This ensures the model is only trained to predict the output, not the input.
+    
+    Args:
+        batch: List of {"ids": tensor, "raw": str}
+        pad_id: Padding token ID
+        max_len: Maximum sequence length
+        sep_token_id: Token ID for separator "|" (if None, no masking)
+    
+    Returns:
+        padded: (batch, seq) padded token IDs
+        raws: List of raw strings
+        loss_mask: (batch, seq-1) mask where 1.0 = compute loss, 0.0 = ignore
+    """
     batch_ids = [b["ids"] for b in batch]
     lengths = [len(x) for x in batch_ids]
     max_batch_len = min(max(lengths), max_len)
     padded = torch.full((len(batch), max_batch_len), pad_id, dtype=torch.long)
+    
+    # Create loss mask: 1.0 for positions AFTER separator, 0.0 for positions BEFORE/AT separator
+    # The mask is for target positions (shifted by 1), so mask[i] corresponds to predicting token[i+1]
+    loss_mask = torch.zeros((len(batch), max_batch_len - 1), dtype=torch.float32)
+    
     for i, ids in enumerate(batch_ids):
         seq = ids[-max_batch_len:]
-        padded[i, max_batch_len - len(seq):] = seq  # right-align
+        start_pos = max_batch_len - len(seq)
+        padded[i, start_pos:] = seq  # right-align
+        
+        # Find separator position and create mask
+        if sep_token_id is not None:
+            # Find first occurrence of separator in the sequence
+            sep_positions = (seq == sep_token_id).nonzero(as_tuple=True)[0]
+            if len(sep_positions) > 0:
+                # First separator position (relative to start of padded seq)
+                sep_pos = sep_positions[0].item() + start_pos
+                # Mask: only predict tokens AFTER the separator
+                # Since target is shifted by 1, we want loss on positions where target > sep_pos
+                # That means: for target position t, the corresponding input position is t
+                # We want loss when t > sep_pos (the target token is after separator)
+                for t in range(max_batch_len - 1):
+                    # t is the target position (input position + 1 shifted)
+                    # The target at position t is predicting padded[i, t+1]
+                    # We want to compute loss only if t+1 > sep_pos (target is after separator)
+                    if t + 1 > sep_pos and padded[i, t + 1] != pad_id:
+                        loss_mask[i, t] = 1.0
+            else:
+                # No separator found, compute loss on all non-pad tokens (fallback)
+                for t in range(max_batch_len - 1):
+                    if padded[i, t + 1] != pad_id:
+                        loss_mask[i, t] = 1.0
+        else:
+            # No separator masking, compute loss on all non-pad tokens
+            for t in range(max_batch_len - 1):
+                if padded[i, t + 1] != pad_id:
+                    loss_mask[i, t] = 1.0
+    
     raws = [b["raw"] for b in batch]
-    return padded, raws
+    return padded, raws, loss_mask
 
 # ---------- Utility: decode ids -> string ----------
 def decode_ids_to_text(ids: List[int], itos: dict):
@@ -385,9 +640,12 @@ def normalized_edit_distance(s1: str, s2: str) -> float:
 # ---------- Autoregressive Generation ----------
 @torch.no_grad()
 def generate_autoregressive(model, prompt_ids: List[int], stoi: dict, itos: dict, 
-                            max_new_tokens: int = 50, device: torch.device = None) -> List[int]:
+                            max_new_tokens: int = 50, device: torch.device = None,
+                            temperature: float = 1.0, top_p: float = 1.0, top_k: int = 0) -> List[int]:
     """
     Generate tokens autoregressively from a prompt.
+    Supports greedy, temperature scaling, top-k, and nucleus (top-p) sampling.
+    
     Stops when:
       - max_new_tokens is reached
       - A newline or special stopping pattern is detected
@@ -399,6 +657,9 @@ def generate_autoregressive(model, prompt_ids: List[int], stoi: dict, itos: dict
         itos: ID to string mapping
         max_new_tokens: Maximum tokens to generate
         device: Device to run on
+        temperature: Sampling temperature (1.0 = normal, <1.0 = more confident, >1.0 = more random)
+        top_p: Nucleus sampling threshold (1.0 = disabled, <1.0 = only sample from top cumulative prob)
+        top_k: Top-k sampling (0 = disabled, >0 = only sample from top k tokens)
     
     Returns:
         List of generated token IDs (not including prompt)
@@ -416,10 +677,40 @@ def generate_autoregressive(model, prompt_ids: List[int], stoi: dict, itos: dict
         
         # Forward pass
         logits = model(input_ids)  # (1, seq, vocab)
+        next_token_logits = logits[0, -1, :].clone()  # (vocab,)
         
-        # Get next token (greedy decoding)
-        next_token_logits = logits[0, -1, :]  # (vocab,)
-        next_token = next_token_logits.argmax().item()
+        # Apply temperature
+        if temperature != 1.0:
+            next_token_logits = next_token_logits / temperature
+        
+        # Apply top-k filtering
+        if top_k > 0:
+            top_k = min(top_k, next_token_logits.size(-1))
+            indices_to_remove = next_token_logits < torch.topk(next_token_logits, top_k)[0][-1]
+            next_token_logits[indices_to_remove] = float('-inf')
+        
+        # Apply nucleus (top-p) filtering
+        if top_p < 1.0:
+            sorted_logits, sorted_indices = torch.sort(next_token_logits, descending=True)
+            cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+            
+            # Remove tokens with cumulative probability above threshold
+            sorted_indices_to_remove = cumulative_probs > top_p
+            # Shift: keep first token above threshold too
+            sorted_indices_to_remove[1:] = sorted_indices_to_remove[:-1].clone()
+            sorted_indices_to_remove[0] = False
+            
+            indices_to_remove = sorted_indices[sorted_indices_to_remove]
+            next_token_logits[indices_to_remove] = float('-inf')
+        
+        # Sample or greedy
+        if temperature == 0 or (top_p == 1.0 and top_k == 0 and temperature == 1.0):
+            # Greedy decoding
+            next_token = next_token_logits.argmax().item()
+        else:
+            # Sample from distribution
+            probs = F.softmax(next_token_logits, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1).item()
         
         generated.append(next_token)
         
@@ -510,32 +801,64 @@ def plot_loss_curves(history: dict, out_dir: str):
     print(f"Training metrics plot saved to: {plot_path}")
 
 # ---------- Training / Evaluation loops ----------
-def train_epoch(model, optimizer, scaler, dataloader, device, epoch, args, itos):
+def train_epoch(model, optimizer, scaler, scheduler, dataloader, device, epoch, args, itos):
     model.train()
     total_loss = 0.0
-    total_tokens = 0
+    total_output_tokens = 0  # Only count output tokens for loss averaging
     pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Train E{epoch}")
     optimizer.zero_grad()
     accumulation = args.accumulation_steps
-    for step, (padded, raws) in pbar:
+    
+    for step, (padded, raws, loss_mask) in pbar:
         padded = padded.to(device)  # (b, seq)
-        # prepare input/target for causal LM: input = all tokens except last, target = all tokens except first
+        loss_mask = loss_mask.to(device)  # (b, seq-1)
+        
+        # Prepare input/target for causal LM: input = all except last, target = all except first
         input_ids = padded[:, :-1]
         target_ids = padded[:, 1:]
-        with autocast('cuda'):  # Updated: specify device type
+        
+        with autocast('cuda'):
             logits = model(input_ids)  # (b, seq-1, vocab)
             vocab = logits.shape[-1]
-            loss = F.cross_entropy(logits.reshape(-1, vocab), target_ids.reshape(-1), ignore_index=args.pad_id)
+            
+            # Compute per-token loss (no reduction)
+            per_token_loss = F.cross_entropy(
+                logits.reshape(-1, vocab), 
+                target_ids.reshape(-1), 
+                reduction='none',
+                label_smoothing=args.label_smoothing
+            )  # (b * seq-1,)
+            
+            # Reshape and apply mask: only compute loss on OUTPUT tokens (after separator)
+            per_token_loss = per_token_loss.reshape(loss_mask.shape)  # (b, seq-1)
+            masked_loss = per_token_loss * loss_mask
+            
+            # Average over masked tokens only
+            num_output_tokens = loss_mask.sum()
+            if num_output_tokens > 0:
+                loss = masked_loss.sum() / num_output_tokens
+            else:
+                # Fallback: if no output tokens (shouldn't happen), use mean
+                loss = masked_loss.mean()
+            
             loss_val = loss.item()
+        
         scaler.scale(loss / accumulation).backward()
+        
         if (step + 1) % accumulation == 0:
+            # Gradient clipping before optimizer step
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
             scaler.step(optimizer)
             scaler.update()
+            scheduler.step()  # Step scheduler per optimizer step for warmup
             optimizer.zero_grad()
-        total_loss += loss_val * input_ids.numel()  # token-level weighting
-        total_tokens += input_ids.numel()
-        pbar.set_postfix({"loss": f"{(total_loss/total_tokens):.4f}"})
-    avg_loss = total_loss / total_tokens
+        
+        # Track loss weighted by output tokens only
+        total_loss += loss_val * num_output_tokens.item()
+        total_output_tokens += num_output_tokens.item()
+        pbar.set_postfix({"loss": f"{(total_loss/max(1, total_output_tokens)):.4f}"})
+    avg_loss = total_loss / max(1, total_output_tokens)
     return avg_loss
 
 def extract_task_type(raw: str) -> str:
@@ -762,11 +1085,27 @@ def parse_args():
     p.add_argument("--profile_memory", action="store_true", help="log GPU memory usage each epoch")
     p.add_argument("--show_samples", action="store_true", help="show sample predictions during evaluation")
     p.add_argument("--autoreg_eval", action="store_true", help="use autoregressive generation for evaluation (slower but more realistic)")
-    # Curriculum learning
-    p.add_argument("--curriculum", action="store_true", help="enable curriculum learning (train on short sequences first)")
+    # Curriculum learning (LENGTH-based - legacy)
+    p.add_argument("--curriculum", action="store_true", help="enable LENGTH-based curriculum (train on short sequences first)")
     p.add_argument("--curriculum_start", type=int, default=20, help="starting max sequence length for curriculum")
     p.add_argument("--curriculum_end", type=int, default=None, help="ending max sequence length (defaults to --max_len)")
     p.add_argument("--curriculum_epochs", type=int, default=5, help="epochs to transition from start to end length")
+    # Task-based curriculum (SEMANTIC - recommended)
+    p.add_argument("--task_curriculum", action="store_true", help="enable TASK-based curriculum (easy tasks first: copy→rev→add→sort→rel)")
+    p.add_argument("--task_curriculum_epochs", type=int, default=None, help="epochs to reach final stage (default: 2 per stage)")
+    # Training improvements
+    p.add_argument("--warmup_steps", type=int, default=500, help="number of warmup steps for learning rate")
+    p.add_argument("--max_grad_norm", type=float, default=1.0, help="max gradient norm for clipping")
+    p.add_argument("--label_smoothing", type=float, default=0.1, help="label smoothing factor (0 = off)")
+    # Memorization analysis
+    p.add_argument("--compute_memorization", action="store_true", help="compute train EM and memorization metrics each epoch")
+    p.add_argument("--memorization_samples", type=int, default=200, help="number of samples for train memorization check")
+    # Model architecture
+    p.add_argument("--use_swiglu", action="store_true", help="use SwiGLU FFN instead of standard GELU FFN")
+    # Sampling parameters (for autoregressive evaluation)
+    p.add_argument("--temperature", type=float, default=1.0, help="sampling temperature (1.0=normal, <1=confident, >1=random)")
+    p.add_argument("--top_p", type=float, default=1.0, help="nucleus sampling threshold (1.0=disabled)")
+    p.add_argument("--top_k", type=int, default=0, help="top-k sampling (0=disabled)")
     args = p.parse_args()
     if args.d_ff is None:
         args.d_ff = args.d_model * 4
@@ -793,8 +1132,15 @@ def main():
         itos = tok["itos"]
 
     pad_id = stoi.get("<pad>", 0)
+    sep_token_id = stoi.get("|", None)  # Separator token for loss masking
+    if sep_token_id is None:
+        print("WARNING: Separator token '|' not found in tokenizer. Loss will be computed on all tokens.")
+    else:
+        print(f"Using separator token ID={sep_token_id} for output-only loss masking.")
+    
     vocab_size = len(stoi)
     args.pad_id = pad_id
+    args.sep_token_id = sep_token_id
     args.vocab_size = vocab_size
 
     # dataset & loader
@@ -802,21 +1148,38 @@ def main():
     print(f"Training dataset loaded: {len(base_dataset)} examples")
     
     # Curriculum learning setup
-    if args.curriculum:
+    task_curriculum_dataset = None
+    curriculum_dataset = None
+    
+    if args.task_curriculum:
+        # Task-based curriculum (RECOMMENDED)
+        task_curriculum_dataset = TaskCurriculumDataset(base_dataset, max_stage=0)
+        dataset = task_curriculum_dataset
+        stats = task_curriculum_dataset.get_stats()
+        print(f"[TaskCurriculum] Starting at stage 0: {stats['stage_info']['description']}")
+        print(f"[TaskCurriculum] Using {stats['count']} examples, tasks: {stats['tasks']}")
+        
+        # Calculate epochs per stage
+        num_stages = len(TASK_DIFFICULTY_STAGES)
+        if args.task_curriculum_epochs is None:
+            # Default: 2 epochs per stage
+            args.task_curriculum_epochs = num_stages * 2
+        epochs_per_stage = max(1, args.task_curriculum_epochs // num_stages)
+        print(f"[TaskCurriculum] {num_stages} stages, advancing every {epochs_per_stage} epochs")
+    elif args.curriculum:
+        # Length-based curriculum (legacy)
         if args.curriculum_end is None:
             args.curriculum_end = args.max_len
-        # Start with short sequences
         curriculum_dataset = CurriculumDataset(base_dataset, args.curriculum_start)
         dataset = curriculum_dataset
         stats = curriculum_dataset.get_length_stats()
-        print(f"[Curriculum] Starting with max_len={args.curriculum_start}, "
+        print(f"[LengthCurriculum] Starting with max_len={args.curriculum_start}, "
               f"using {stats['count']} examples (avg_len={stats['avg_len']:.1f})")
     else:
         dataset = base_dataset
-        curriculum_dataset = None
     
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True,
-                            collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len), num_workers=2, pin_memory=True)
+                            collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len, sep_token_id=sep_token_id), num_workers=2, pin_memory=True)
 
     # Validation data: explicit path > auto-detect > None
     val_loader = None
@@ -830,7 +1193,7 @@ def main():
     if val_path and os.path.exists(val_path):
         val_dataset = PickleDataset(val_path, stoi, args.max_len)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
-                                collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len), num_workers=2, pin_memory=True)
+                                collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len, sep_token_id=sep_token_id), num_workers=2, pin_memory=True)
         print(f"Validation loader ready: {len(val_dataset)} examples from {val_path}")
     else:
         print("WARNING: No validation data found. Training without validation (early stopping disabled).")
@@ -838,13 +1201,32 @@ def main():
     # build model
     model = MiniGPT(vocab_size=vocab_size, max_len=args.max_len, d_model=args.d_model,
                     n_heads=args.n_heads, n_layers=args.n_layers, d_ff=args.d_ff,
-                    dropout=args.dropout, use_checkpoint=args.use_checkpoint).to(device)
-    print(f"Model params: {sum(p.numel() for p in model.parameters()):,}")
+                    dropout=args.dropout, use_checkpoint=args.use_checkpoint,
+                    use_swiglu=args.use_swiglu).to(device)
+    ffn_type = "SwiGLU" if args.use_swiglu else "GELU"
+    print(f"Model params: {sum(p.numel() for p in model.parameters()):,} (FFN: {ffn_type})")
 
-    # optimizer, scaler, scheduler
+    # optimizer, scaler, scheduler with warmup
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scaler = GradScaler('cuda')  # Updated: specify device type
-    scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=args.lr * 0.1)
+    
+    # Calculate total training steps for scheduler
+    steps_per_epoch = len(dataloader) // args.accumulation_steps
+    total_steps = steps_per_epoch * args.epochs
+    warmup_steps = min(args.warmup_steps, total_steps // 4)  # Cap warmup at 25% of total
+    
+    # Linear warmup + Cosine decay scheduler
+    def lr_lambda(current_step):
+        if current_step < warmup_steps:
+            # Linear warmup
+            return float(current_step) / float(max(1, warmup_steps))
+        else:
+            # Cosine decay
+            progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+            return max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))  # min LR = 10% of max
+    
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    print(f"Scheduler: {warmup_steps} warmup steps, {total_steps} total steps")
 
     # Early stopping state
     best_val_loss = float("inf")
@@ -852,7 +1234,7 @@ def main():
     best_model_state = None
 
     # training loop
-    history = {"train_loss": [], "val_loss": [], "val_exact": [], "val_token_acc": [], "task_accuracy": [], "lr": []}
+    history = {"train_loss": [], "val_loss": [], "val_exact": [], "val_token_acc": [], "task_accuracy": [], "lr": [], "train_exact": [], "train_val_gap": []}
 
     # Initial memory profiling
     if args.profile_memory:
@@ -875,17 +1257,38 @@ def main():
             # Rebuild dataloader if dataset size changed significantly
             if new_count != old_count:
                 dataloader = DataLoader(curriculum_dataset, batch_size=args.batch_size, shuffle=True,
-                                        collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len), 
+                                        collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len, sep_token_id=sep_token_id), 
                                         num_workers=2, pin_memory=True)
             
             stats = curriculum_dataset.get_length_stats()
-            print(f"[Curriculum] Epoch {epoch}: max_len={new_max_len}, "
+            print(f"[LengthCurriculum] Epoch {epoch}: max_len={new_max_len}, "
                   f"examples={stats['count']}, avg_len={stats['avg_len']:.1f}")
         
-        train_loss = train_epoch(model, optimizer, scaler, dataloader, device, epoch, args, itos)
+        # Task-based curriculum: advance stage based on epoch
+        if task_curriculum_dataset is not None:
+            num_stages = len(TASK_DIFFICULTY_STAGES)
+            epochs_per_stage = max(1, args.task_curriculum_epochs // num_stages)
+            new_stage = min((epoch - 1) // epochs_per_stage, num_stages - 1)
+            
+            if new_stage != task_curriculum_dataset.max_stage:
+                old_count = len(task_curriculum_dataset)
+                task_curriculum_dataset.set_stage(new_stage)
+                new_count = len(task_curriculum_dataset)
+                
+                stats = task_curriculum_dataset.get_stats()
+                print(f"[TaskCurriculum] Epoch {epoch}: Advanced to stage {new_stage}")
+                print(f"[TaskCurriculum] {stats['stage_info']['description']}: {stats['count']} examples")
+                print(f"[TaskCurriculum] Tasks now included: {list(stats['tasks'].keys())}")
+                
+                # Rebuild dataloader with new curriculum
+                if new_count != old_count:
+                    dataloader = DataLoader(task_curriculum_dataset, batch_size=args.batch_size, shuffle=True,
+                                            collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len, sep_token_id=sep_token_id), 
+                                            num_workers=2, pin_memory=True)
         
-        # Step scheduler
-        scheduler.step()
+        train_loss = train_epoch(model, optimizer, scaler, scheduler, dataloader, device, epoch, args, itos)
+        
+        # Get current learning rate (scheduler stepped per optimizer step in train_epoch)
         current_lr = scheduler.get_last_lr()[0]
         history["lr"].append(current_lr)
         
@@ -903,15 +1306,9 @@ def main():
             history["val_exact"].append(val_exact)
             history["val_token_acc"].append(token_acc)
             history["task_accuracy"].append(task_accuracy)
-            print(f"[Epoch {epoch}] val_loss={val_loss:.4f} | exact_match={val_exact:.4f} | token_acc={token_acc:.4f}")
-            
-            # Print per-task accuracy breakdown
-            if task_accuracy:
-                print(f"[Epoch {epoch}] Per-task accuracy (teacher-forced):")
-                for task, acc in sorted(task_accuracy.items()):
-                    print(f"    {task}: {acc:.4f}")
             
             # Optional: Autoregressive evaluation (slower but more realistic)
+            autoreg_exact, autoreg_token_acc, autoreg_edit_dist, autoreg_task_acc = None, None, None, None
             if args.autoreg_eval:
                 autoreg_exact, autoreg_token_acc, autoreg_edit_dist, autoreg_task_acc = evaluate_autoregressive(
                     model, val_loader, device, args, stoi, itos
@@ -919,11 +1316,78 @@ def main():
                 history.setdefault("autoreg_exact", []).append(autoreg_exact)
                 history.setdefault("autoreg_token_acc", []).append(autoreg_token_acc)
                 history.setdefault("autoreg_edit_dist", []).append(autoreg_edit_dist)
-                print(f"[Epoch {epoch}] AutoReg exact_match={autoreg_exact:.4f} | token_acc={autoreg_token_acc:.4f} | edit_dist={autoreg_edit_dist:.4f}")
-                if autoreg_task_acc:
-                    print(f"[Epoch {epoch}] AutoReg per-task:")
-                    for task, acc in sorted(autoreg_task_acc.items()):
-                        print(f"    {task}: {acc:.4f}")
+            
+            # Train memorization check (optional, slower)
+            train_em, train_val_gap = None, None
+            if args.compute_memorization and METRICS_AVAILABLE:
+                train_mem = compute_train_exact_match(
+                    model, dataloader, device, args.pad_id, 
+                    n_samples=args.memorization_samples, itos=itos
+                )
+                train_em = train_mem["train_exact_match"]
+                history["train_exact"].append(train_em)
+                train_val_gap = train_em - val_exact
+                history["train_val_gap"].append(train_val_gap)
+            
+            # ============ STRUCTURED EPOCH SUMMARY ============
+            print()
+            print(f"{'='*60}")
+            print(f"  EPOCH {epoch} SUMMARY")
+            print(f"{'='*60}")
+            print()
+            
+            # Core Metrics
+            print("  📊 CORE METRICS")
+            print(f"  {'─'*40}")
+            print(f"  {'Train Loss:':<20} {train_loss:.4f}")
+            print(f"  {'Val Loss:':<20} {val_loss:.4f}")
+            print(f"  {'Learning Rate:':<20} {current_lr:.2e}")
+            print()
+            
+            # Teacher-Forced Evaluation
+            print("  📝 TEACHER-FORCED (Val)")
+            print(f"  {'─'*40}")
+            print(f"  {'Exact Match:':<20} {val_exact:.4f}  {'✓' if val_exact > 0.5 else '✗'}")
+            print(f"  {'Token Accuracy:':<20} {token_acc:.4f}")
+            print()
+            
+            # Autoregressive Evaluation (if enabled)
+            if args.autoreg_eval and autoreg_exact is not None:
+                print("  🔄 AUTOREGRESSIVE (Val)")
+                print(f"  {'─'*40}")
+                print(f"  {'Exact Match:':<20} {autoreg_exact:.4f}  {'✓' if autoreg_exact > 0.1 else '✗'}")
+                print(f"  {'Token Accuracy:':<20} {autoreg_token_acc:.4f}")
+                print(f"  {'Edit Distance:':<20} {autoreg_edit_dist:.4f}")
+                print()
+            
+            # Memorization Check (if enabled)
+            if train_em is not None:
+                print("  🧠 MEMORIZATION CHECK")
+                print(f"  {'─'*40}")
+                print(f"  {'Train Exact Match:':<20} {train_em:.4f}")
+                print(f"  {'Train-Val Gap:':<20} {train_val_gap:+.4f}  {'⚠️ HIGH' if train_val_gap > 0.3 else '✓'}")
+                print()
+            
+            # Per-Task Breakdown
+            if task_accuracy:
+                print("  📋 PER-TASK ACCURACY (Teacher-Forced)")
+                print(f"  {'─'*40}")
+                for task, acc in sorted(task_accuracy.items()):
+                    bar = '█' * int(acc * 20) + '░' * (20 - int(acc * 20))
+                    print(f"  {task:<10} {bar} {acc:.2%}")
+                print()
+            
+            # Autoregressive Per-Task (if enabled)
+            if args.autoreg_eval and autoreg_task_acc:
+                print("  📋 PER-TASK ACCURACY (Autoregressive)")
+                print(f"  {'─'*40}")
+                for task, acc in sorted(autoreg_task_acc.items()):
+                    bar = '█' * int(acc * 20) + '░' * (20 - int(acc * 20))
+                    print(f"  {task:<10} {bar} {acc:.2%}")
+                print()
+            
+            print(f"{'='*60}")
+            print()
             
             # Early stopping check
             if val_loss < best_val_loss - args.min_delta:
@@ -970,8 +1434,18 @@ def main():
         json.dump(history, f, indent=2)
     print("\nTraining complete. History written.")
     
-    # Plot loss curves
-    plot_loss_curves(history, args.out_dir)
+    # Generate comprehensive plots using new plots module
+    if METRICS_AVAILABLE:
+        try:
+            plot_paths = generate_all_training_plots(history, args.out_dir)
+            print(f"Generated {len(plot_paths)} visualization plots.")
+        except Exception as e:
+            print(f"Warning: Could not generate all plots: {e}")
+            # Fallback to basic plot
+            plot_loss_curves(history, args.out_dir)
+    else:
+        # Fallback to basic plot
+        plot_loss_curves(history, args.out_dir)
     
     # Final memory summary
     if args.profile_memory:

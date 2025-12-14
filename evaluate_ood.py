@@ -22,119 +22,126 @@ from torch.utils.data import Dataset, DataLoader
 from torch.amp import autocast
 from tqdm import tqdm
 
-# ---------- Model Architecture (same as training) ----------
-class TokenEmbedding(nn.Module):
-    def __init__(self, vocab_size: int, d_model: int):
-        super().__init__()
-        self.emb = nn.Embedding(vocab_size, d_model)
+# ---------- Model Architecture (imported from training script for consistency) ----------
+# Import model classes from training script to ensure checkpoint compatibility
+try:
+    from train_minigpt_4070 import (
+        MiniGPT,
+        TokenEmbedding,
+        PositionalEmbedding,
+        RotaryPositionalEmbedding,
+        MultiHeadSelfAttention,
+        FeedForward,
+        SwiGLUFeedForward,
+        TransformerBlock
+    )
+    MODEL_IMPORTED = True
+except ImportError:
+    # Fallback: define basic model for backward compatibility with old checkpoints
+    MODEL_IMPORTED = False
+    print("WARNING: Could not import model from train_minigpt_4070.py. Using fallback model.")
+    print("         New features (RoPE, SwiGLU) will not work. Consider running from same directory.")
+    
+    class TokenEmbedding(nn.Module):
+        def __init__(self, vocab_size: int, d_model: int):
+            super().__init__()
+            self.emb = nn.Embedding(vocab_size, d_model)
+        def forward(self, tokens: torch.LongTensor):
+            return self.emb(tokens)
 
-    def forward(self, tokens: torch.LongTensor):
-        return self.emb(tokens)
+    class PositionalEmbedding(nn.Module):
+        def __init__(self, max_len: int, d_model: int):
+            super().__init__()
+            self.pos_emb = nn.Embedding(max_len, d_model)
+        def forward(self, x: torch.Tensor):
+            b, seq = x.shape
+            positions = torch.arange(seq, device=x.device).unsqueeze(0).expand(b, seq)
+            return self.pos_emb(positions)
 
+    class MultiHeadSelfAttention(nn.Module):
+        def __init__(self, d_model: int, n_heads: int, causal: bool = True):
+            super().__init__()
+            assert d_model % n_heads == 0
+            self.d_model = d_model
+            self.n_heads = n_heads
+            self.head_dim = d_model // n_heads
+            self.causal = causal
+            self.w_q = nn.Linear(d_model, d_model)
+            self.w_k = nn.Linear(d_model, d_model)
+            self.w_v = nn.Linear(d_model, d_model)
+            self.out = nn.Linear(d_model, d_model)
+        def forward(self, x: torch.Tensor):
+            b, seq, _ = x.shape
+            Q, K, V = self.w_q(x), self.w_k(x), self.w_v(x)
+            def reshape_head(t):
+                return t.view(b, seq, self.n_heads, self.head_dim).transpose(1, 2)
+            Qh, Kh, Vh = reshape_head(Q), reshape_head(K), reshape_head(V)
+            scores = torch.matmul(Qh, Kh.transpose(-2, -1)) / (self.head_dim ** 0.5)
+            if self.causal:
+                idxs = torch.arange(seq, device=x.device)
+                mask = idxs.unsqueeze(0) <= idxs.unsqueeze(1)
+                mask = mask.unsqueeze(0).unsqueeze(0)
+                scores = scores.masked_fill(~mask, -1e9)
+            attn = torch.softmax(scores, dim=-1)
+            out_heads = torch.matmul(attn, Vh)
+            out = out_heads.transpose(1, 2).contiguous().view(b, seq, self.d_model)
+            return self.out(out)
 
-class PositionalEmbedding(nn.Module):
-    def __init__(self, max_len: int, d_model: int):
-        super().__init__()
-        self.pos_emb = nn.Embedding(max_len, d_model)
+    class FeedForward(nn.Module):
+        def __init__(self, d_model: int, d_ff: int):
+            super().__init__()
+            self.net = nn.Sequential(
+                nn.Linear(d_model, d_ff),
+                nn.GELU(),
+                nn.Linear(d_ff, d_model)
+            )
+        def forward(self, x: torch.Tensor):
+            return self.net(x)
 
-    def forward(self, x: torch.Tensor):
-        b, seq = x.shape
-        positions = torch.arange(seq, device=x.device).unsqueeze(0).expand(b, seq)
-        return self.pos_emb(positions)
+    class TransformerBlock(nn.Module):
+        def __init__(self, d_model: int, n_heads: int, d_ff: int, dropout: float = 0.0):
+            super().__init__()
+            self.ln1 = nn.LayerNorm(d_model)
+            self.attn = MultiHeadSelfAttention(d_model, n_heads, causal=True)
+            self.ln2 = nn.LayerNorm(d_model)
+            self.ffn = FeedForward(d_model, d_ff)
+            self.dropout = nn.Dropout(dropout)
+        def forward(self, x: torch.Tensor):
+            y = self.ln1(x)
+            y = self.attn(y)
+            x = x + self.dropout(y)
+            y = self.ln2(x)
+            y = self.ffn(y)
+            x = x + self.dropout(y)
+            return x
 
-
-class MultiHeadSelfAttention(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, causal: bool = True):
-        super().__init__()
-        assert d_model % n_heads == 0
-        self.d_model = d_model
-        self.n_heads = n_heads
-        self.head_dim = d_model // n_heads
-        self.causal = causal
-        self.w_q = nn.Linear(d_model, d_model)
-        self.w_k = nn.Linear(d_model, d_model)
-        self.w_v = nn.Linear(d_model, d_model)
-        self.out = nn.Linear(d_model, d_model)
-
-    def forward(self, x: torch.Tensor):
-        b, seq, _ = x.shape
-        Q, K, V = self.w_q(x), self.w_k(x), self.w_v(x)
-
-        def reshape_head(t):
-            return t.view(b, seq, self.n_heads, self.head_dim).transpose(1, 2)
-
-        Qh, Kh, Vh = reshape_head(Q), reshape_head(K), reshape_head(V)
-        scores = torch.matmul(Qh, Kh.transpose(-2, -1)) / (self.head_dim ** 0.5)
-
-        if self.causal:
-            idxs = torch.arange(seq, device=x.device)
-            mask = idxs.unsqueeze(0) <= idxs.unsqueeze(1)
-            mask = mask.unsqueeze(0).unsqueeze(0)
-            scores = scores.masked_fill(~mask, -1e9)
-
-        attn = torch.softmax(scores, dim=-1)
-        out_heads = torch.matmul(attn, Vh)
-        out = out_heads.transpose(1, 2).contiguous().view(b, seq, self.d_model)
-        return self.out(out)
-
-
-class FeedForward(nn.Module):
-    def __init__(self, d_model: int, d_ff: int):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(d_model, d_ff),
-            nn.GELU(),
-            nn.Linear(d_ff, d_model)
-        )
-
-    def forward(self, x: torch.Tensor):
-        return self.net(x)
-
-
-class TransformerBlock(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, d_ff: int, dropout: float = 0.0):
-        super().__init__()
-        self.ln1 = nn.LayerNorm(d_model)
-        self.attn = MultiHeadSelfAttention(d_model, n_heads, causal=True)
-        self.ln2 = nn.LayerNorm(d_model)
-        self.ffn = FeedForward(d_model, d_ff)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x: torch.Tensor):
-        y = self.ln1(x)
-        y = self.attn(y)
-        x = x + self.dropout(y)
-        y = self.ln2(x)
-        y = self.ffn(y)
-        x = x + self.dropout(y)
-        return x
-
-
-class MiniGPT(nn.Module):
-    def __init__(self, vocab_size: int, max_len: int, d_model: int, n_heads: int, 
-                 n_layers: int, d_ff: int, dropout: float = 0.0, use_checkpoint: bool = False):
-        super().__init__()
-        self.tok_emb = TokenEmbedding(vocab_size, d_model)
-        self.pos_emb = PositionalEmbedding(max_len, d_model)
-        self.drop = nn.Dropout(dropout)
-        self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)])
-        self.ln_f = nn.LayerNorm(d_model)
-        self.head = nn.Linear(d_model, vocab_size, bias=False)
-        self.max_len = max_len
-        self.use_checkpoint = use_checkpoint
-
-    def forward(self, tokens: torch.LongTensor):
-        b, seq = tokens.shape
-        if seq > self.max_len:
-            tokens = tokens[:, -self.max_len:]
-            seq = self.max_len
-        x = self.tok_emb(tokens) + self.pos_emb(tokens)
-        x = self.drop(x)
-        for blk in self.blocks:
-            x = blk(x)
-        x = self.ln_f(x)
-        logits = self.head(x)
-        return logits
+    class MiniGPT(nn.Module):
+        def __init__(self, vocab_size: int, max_len: int, d_model: int, n_heads: int, 
+                     n_layers: int, d_ff: int, dropout: float = 0.0, use_checkpoint: bool = False,
+                     use_rope: bool = False, use_swiglu: bool = False):
+            super().__init__()
+            if use_rope or use_swiglu:
+                raise ValueError("Fallback model does not support RoPE or SwiGLU. Import from train_minigpt_4070.py")
+            self.tok_emb = TokenEmbedding(vocab_size, d_model)
+            self.pos_emb = PositionalEmbedding(max_len, d_model)
+            self.drop = nn.Dropout(dropout)
+            self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads, d_ff, dropout) for _ in range(n_layers)])
+            self.ln_f = nn.LayerNorm(d_model)
+            self.head = nn.Linear(d_model, vocab_size, bias=False)
+            self.max_len = max_len
+            self.use_checkpoint = use_checkpoint
+        def forward(self, tokens: torch.LongTensor):
+            b, seq = tokens.shape
+            if seq > self.max_len:
+                tokens = tokens[:, -self.max_len:]
+                seq = self.max_len
+            x = self.tok_emb(tokens) + self.pos_emb(tokens)
+            x = self.drop(x)
+            for blk in self.blocks:
+                x = blk(x)
+            x = self.ln_f(x)
+            logits = self.head(x)
+            return logits
 
 
 # ---------- OOD Dataset ----------
@@ -750,6 +757,12 @@ def main():
     
     print(f"Model config: d_model={d_model}, n_heads={n_heads}, n_layers={n_layers}, max_len={max_len}")
     
+    # Get new model features from checkpoint (for compatibility with updated training script)
+    use_rope = saved_args.get("use_rope", True)   # RoPE is now default in training script
+    use_swiglu = saved_args.get("use_swiglu", False)
+    if use_swiglu and not MODEL_IMPORTED:
+        raise RuntimeError("Checkpoint uses SwiGLU but model import failed. Run from same directory as train_minigpt_4070.py")
+    
     # Build and load model
     model = MiniGPT(
         vocab_size=vocab_size,
@@ -759,7 +772,9 @@ def main():
         n_layers=n_layers,
         d_ff=d_ff,
         dropout=0.0,  # No dropout during eval
-        use_checkpoint=False
+        use_checkpoint=False,
+        use_rope=use_rope,
+        use_swiglu=use_swiglu
     ).to(device)
     
     model.load_state_dict(checkpoint["model_state"])
