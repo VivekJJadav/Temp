@@ -901,6 +901,7 @@ def evaluate(model, dataloader, device, args, itos):
     
     for padded, raws, loss_mask in tqdm(dataloader, desc="Eval"):
         padded = padded.to(device)
+        loss_mask = loss_mask.to(device)  # (b, seq-1)
         input_ids = padded[:, :-1]
         target_ids = padded[:, 1:]
         with autocast('cuda'):  # Updated: specify device type
@@ -912,24 +913,27 @@ def evaluate(model, dataloader, device, args, itos):
         # Greedy decode predictions
         preds = logits.argmax(dim=-1)  # (b, seq-1)
         
-        # Token accuracy: count correct non-padding tokens
-        mask = target_ids != args.pad_id
-        correct_tokens += ((preds == target_ids) & mask).sum().item()
-        counted_tokens += mask.sum().item()
+        # Token accuracy: count correct OUTPUT tokens only (using loss_mask)
+        output_mask = loss_mask.bool()  # True for output tokens
+        correct_tokens += ((preds == target_ids) & output_mask).sum().item()
+        counted_tokens += output_mask.sum().item()
         
         preds_list = preds.cpu().tolist()
         targets = target_ids.cpu().tolist()
+        loss_mask_list = loss_mask.cpu().tolist()
         
         for i, (pred_ids, target_ids_list, raw) in enumerate(zip(preds_list, targets, raws)):
             if raw is None:
                 continue
             
+            mask_i = loss_mask_list[i]  # Get mask for this example
+            
             # Show samples if requested
             if args.show_samples and i == 0 and random.random() < 0.1:  # Print snippet from ~10% of batches
-                # Filter out pad tokens before decoding
+                # Filter to OUTPUT tokens only (using loss_mask)
                 inp_filtered = [t for t in input_ids[i].tolist() if t != args.pad_id]
-                tgt_filtered = [t for t in target_ids_list if t != args.pad_id]
-                pred_filtered = [p for p, t in zip(pred_ids, target_ids_list) if t != args.pad_id]
+                tgt_filtered = [t for t, m in zip(target_ids_list, mask_i) if m == 1.0]
+                pred_filtered = [p for p, m in zip(pred_ids, mask_i) if m == 1.0]
                 print(f"\n[Sample] Input:  {decode_ids_to_text(inp_filtered, itos)}")
                 print(f"[Sample] Target: {decode_ids_to_text(tgt_filtered, itos)}")
                 print(f"[Sample] Pred:   {decode_ids_to_text(pred_filtered, itos)}")
@@ -937,12 +941,11 @@ def evaluate(model, dataloader, device, args, itos):
             task_type = extract_task_type(raw)
             task_total[task_type] += 1
             
-            # Compare predicted tokens to target tokens (ignoring padding)
-            # Filter predictions based on TARGET positions, not prediction values
-            pred_tokens = [p for p, t in zip(pred_ids, target_ids_list) if t != args.pad_id]
-            target_tokens = [t for t in target_ids_list if t != args.pad_id]
+            # Compare predicted tokens to target tokens (OUTPUT ONLY using loss_mask)
+            pred_tokens = [p for p, m in zip(pred_ids, mask_i) if m == 1.0]
+            target_tokens = [t for t, m in zip(target_ids_list, mask_i) if m == 1.0]
             
-            # Exact match: entire sequence must match
+            # Exact match: entire OUTPUT sequence must match
             if pred_tokens == target_tokens:
                 exact_matches += 1
                 task_correct[task_type] += 1
