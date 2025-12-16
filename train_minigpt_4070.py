@@ -894,7 +894,7 @@ def evaluate(model, dataloader, device, args, itos):
     task_correct = defaultdict(int)
     task_total = defaultdict(int)
     
-    for padded, raws in tqdm(dataloader, desc="Eval"):
+    for padded, raws, loss_mask in tqdm(dataloader, desc="Eval"):
         padded = padded.to(device)
         input_ids = padded[:, :-1]
         target_ids = padded[:, 1:]
@@ -981,7 +981,7 @@ def evaluate_autoregressive(model, dataloader, device, args, stoi, itos):
     # Store sample predictions
     sample_preds = []
     
-    for padded, raws in tqdm(dataloader, desc="AutoReg Eval"):
+    for padded, raws, loss_mask in tqdm(dataloader, desc="AutoReg Eval"):
         for i, raw in enumerate(raws):
             if raw is None:
                 continue

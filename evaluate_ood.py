@@ -424,7 +424,7 @@ def evaluate_ood_file(model, dataloader, device, stoi, itos, pad_id, vocab_size,
     # Store sample predictions for debugging
     sample_predictions = []
     
-    for padded, raws in dataloader:
+    for padded, raws, loss_mask in dataloader:
         padded = padded.to(device)
         input_ids = padded[:, :-1]
         target_ids = padded[:, 1:]

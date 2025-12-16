@@ -247,7 +247,7 @@ def compute_train_exact_match(model, dataloader, device, pad_id: int,
     correct_tokens = 0
     total_tokens = 0
     
-    for padded, raws in dataloader:
+    for padded, raws, loss_mask in dataloader:
         if total >= n_samples:
             break
         
