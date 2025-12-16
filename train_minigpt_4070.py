@@ -804,18 +804,19 @@ def plot_loss_curves(history: dict, out_dir: str):
 def train_epoch(model, optimizer, scaler, scheduler, dataloader, device, epoch, args, itos):
     model.train()
     total_loss = 0.0
-    total_output_tokens = 0  # Only count output tokens for loss averaging
+    total_output_tokens = 0  # Only count OUTPUT tokens for loss averaging
     pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Train E{epoch}")
     optimizer.zero_grad()
     accumulation = args.accumulation_steps
     
     for step, (padded, raws, loss_mask) in pbar:
         padded = padded.to(device)  # (b, seq)
-        loss_mask = loss_mask.to(device)  # (b, seq-1)
+        loss_mask = loss_mask.to(device)  # (b, seq-1) - 1.0 for output tokens, 0.0 for input
         
         # SANITY CHECK: Print output tokens per batch on first step
         if step == 0 and epoch == 1:
-            print(f"\n[Sanity Check] Output tokens per example (first batch): {loss_mask.sum(dim=1).tolist()}")
+            print(f"\n[Sanity Check] Training on OUTPUT tokens only (after separator)")
+            print(f"[Sanity Check] Output tokens per example: {loss_mask.sum(dim=1).tolist()}")
             print(f"[Sanity Check] Total output tokens: {loss_mask.sum().item():.0f}, batch size: {padded.shape[0]}")
         
         # Prepare input/target for causal LM: input = all except last, target = all except first
@@ -838,13 +839,13 @@ def train_epoch(model, optimizer, scaler, scheduler, dataloader, device, epoch, 
             per_token_loss = per_token_loss.reshape(loss_mask.shape)  # (b, seq-1)
             masked_loss = per_token_loss * loss_mask
             
-            # Average over masked tokens only
+            # Average over masked (output) tokens only
             num_output_tokens = loss_mask.sum()
             if num_output_tokens > 0:
                 loss = masked_loss.sum() / num_output_tokens
             else:
                 # Fallback: if no output tokens (shouldn't happen), use mean
-                loss = masked_loss.mean()
+                loss = per_token_loss.mean()
             
             loss_val = loss.item()
         
@@ -901,14 +902,34 @@ def evaluate(model, dataloader, device, args, itos):
     
     for padded, raws, loss_mask in tqdm(dataloader, desc="Eval"):
         padded = padded.to(device)
-        loss_mask = loss_mask.to(device)  # (b, seq-1)
+        loss_mask = loss_mask.to(device)  # (b, seq-1) - 1.0 for output tokens, 0.0 for input
         input_ids = padded[:, :-1]
         target_ids = padded[:, 1:]
-        with autocast('cuda'):  # Updated: specify device type
+        
+        with autocast('cuda'):
             logits = model(input_ids)
-            loss = F.cross_entropy(logits.reshape(-1, vocab), target_ids.reshape(-1), ignore_index=args.pad_id)
-        total_loss += loss.item() * input_ids.numel()
-        total_tokens += input_ids.numel()
+            
+            # Compute per-token loss (no reduction) - MATCHING train_epoch
+            per_token_loss = F.cross_entropy(
+                logits.reshape(-1, vocab), 
+                target_ids.reshape(-1), 
+                reduction='none'
+            )  # (b * seq-1,)
+            
+            # Reshape and apply mask: only compute loss on OUTPUT tokens
+            per_token_loss = per_token_loss.reshape(loss_mask.shape)  # (b, seq-1)
+            masked_loss = per_token_loss * loss_mask
+            
+            # Average over output tokens only
+            num_output_tokens = loss_mask.sum()
+            if num_output_tokens > 0:
+                loss = masked_loss.sum() / num_output_tokens
+            else:
+                loss = per_token_loss.mean()
+        
+        # Track loss weighted by output tokens only (matching train_epoch)
+        total_loss += loss.item() * num_output_tokens.item()
+        total_tokens += num_output_tokens.item()
         
         # Greedy decode predictions
         preds = logits.argmax(dim=-1)  # (b, seq-1)
@@ -951,7 +972,7 @@ def evaluate(model, dataloader, device, args, itos):
                 task_correct[task_type] += 1
             total_examples += 1
     
-    avg_loss = total_loss / total_tokens
+    avg_loss = total_loss / max(1, total_tokens)
     exact_match_rate = (exact_matches / total_examples) if total_examples > 0 else 0.0
     token_accuracy = (correct_tokens / counted_tokens) if counted_tokens > 0 else 0.0
     

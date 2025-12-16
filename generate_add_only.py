@@ -21,14 +21,40 @@ def main():
     out_dir = "data/add_only"
     os.makedirs(out_dir, exist_ok=True)
     
-    # Generate samples
+    # Target sizes
     n_train = 5000
     n_val = 500
+    n_total = n_train + n_val
     
-    print(f"Generating {n_train} training + {n_val} validation samples...")
+    print(f"Generating {n_train} training + {n_val} validation samples (ZERO overlap)...")
     
-    train_samples = [generate_add_sample(max_digits=2) for _ in range(n_train)]
-    val_samples = [generate_add_sample(max_digits=2) for _ in range(n_val)]
+    # Generate unique samples to avoid ANY overlap between train and val
+    unique_samples = set()
+    max_attempts = n_total * 10  # Prevent infinite loop
+    attempts = 0
+    
+    while len(unique_samples) < n_total and attempts < max_attempts:
+        sample = generate_add_sample(max_digits=2)
+        unique_samples.add(sample)
+        attempts += 1
+    
+    if len(unique_samples) < n_total:
+        print(f"WARNING: Could only generate {len(unique_samples)} unique samples")
+    
+    # Convert to list and shuffle
+    all_samples = list(unique_samples)
+    random.shuffle(all_samples)
+    
+    # Split into train and val (ZERO overlap guaranteed)
+    train_samples = all_samples[:n_train]
+    val_samples = all_samples[n_train:n_train + n_val]
+    
+    # Verify no overlap
+    train_set = set(train_samples)
+    val_set = set(val_samples)
+    overlap = train_set & val_set
+    print(f"Train unique: {len(train_set)}, Val unique: {len(val_set)}, Overlap: {len(overlap)}")
+    assert len(overlap) == 0, "BUG: Train and val sets should not overlap!"
     
     print("Sample examples:")
     for s in train_samples[:5]:
