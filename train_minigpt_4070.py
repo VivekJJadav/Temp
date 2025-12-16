@@ -559,30 +559,30 @@ def collate_fn(batch:List[dict], pad_id:int, max_len:int, sep_token_id:int = Non
     padded = torch.full((len(batch), max_batch_len), pad_id, dtype=torch.long)
     
     # Create loss mask: 1.0 for positions AFTER separator, 0.0 for positions BEFORE/AT separator
-    # The mask is for target positions (shifted by 1), so mask[i] corresponds to predicting token[i+1]
+    # loss_mask[t] corresponds to predicting padded[t+1] (the target at position t)
     loss_mask = torch.zeros((len(batch), max_batch_len - 1), dtype=torch.float32)
     
     for i, ids in enumerate(batch_ids):
-        seq = ids[-max_batch_len:]
-        start_pos = max_batch_len - len(seq)
-        padded[i, start_pos:] = seq  # right-align
+        seq = ids[-max_batch_len:]  # truncate if needed
+        start_pos = max_batch_len - len(seq)  # right-align offset
+        padded[i, start_pos:] = seq
         
         # Find separator position and create mask
         if sep_token_id is not None:
-            # Find first occurrence of separator in the sequence
+            # Find separator in the UNPADDED sequence (seq), then convert to padded coordinates
             sep_positions = (seq == sep_token_id).nonzero(as_tuple=True)[0]
             if len(sep_positions) > 0:
-                # First separator position (relative to start of padded seq)
-                sep_pos = sep_positions[0].item() + start_pos
-                # Mask: only predict tokens AFTER the separator
-                # Since target is shifted by 1, we want loss on positions where target > sep_pos
-                # That means: for target position t, the corresponding input position is t
-                # We want loss when t > sep_pos (the target token is after separator)
+                # sep_idx is the index in 'seq' (0-based within the unpadded portion)
+                sep_idx = sep_positions[0].item()
+                # output_start is the first OUTPUT token position in PADDED coordinates
+                # Output starts AFTER the separator, so: start_pos + sep_idx + 1
+                output_start = start_pos + sep_idx + 1
+                
+                # loss_mask[t] = 1.0 means we compute loss for predicting padded[t+1]
+                # We want loss when target position (t+1) >= output_start AND not padding
                 for t in range(max_batch_len - 1):
-                    # t is the target position (input position + 1 shifted)
-                    # The target at position t is predicting padded[i, t+1]
-                    # We want to compute loss only if t+1 > sep_pos (target is after separator)
-                    if t + 1 > sep_pos and padded[i, t + 1] != pad_id:
+                    target_pos = t + 1  # the token we're predicting
+                    if target_pos >= output_start and padded[i, target_pos] != pad_id:
                         loss_mask[i, t] = 1.0
             else:
                 # No separator found, compute loss on all non-pad tokens (fallback)
@@ -812,6 +812,11 @@ def train_epoch(model, optimizer, scaler, scheduler, dataloader, device, epoch, 
     for step, (padded, raws, loss_mask) in pbar:
         padded = padded.to(device)  # (b, seq)
         loss_mask = loss_mask.to(device)  # (b, seq-1)
+        
+        # SANITY CHECK: Print output tokens per batch on first step
+        if step == 0 and epoch == 1:
+            print(f"\n[Sanity Check] Output tokens per example (first batch): {loss_mask.sum(dim=1).tolist()}")
+            print(f"[Sanity Check] Total output tokens: {loss_mask.sum().item():.0f}, batch size: {padded.shape[0]}")
         
         # Prepare input/target for causal LM: input = all except last, target = all except first
         input_ids = padded[:, :-1]
@@ -1106,6 +1111,8 @@ def parse_args():
     p.add_argument("--temperature", type=float, default=1.0, help="sampling temperature (1.0=normal, <1=confident, >1=random)")
     p.add_argument("--top_p", type=float, default=1.0, help="nucleus sampling threshold (1.0=disabled)")
     p.add_argument("--top_k", type=int, default=0, help="top-k sampling (0=disabled)")
+    # Resume training
+    p.add_argument("--resume", type=str, default=None, help="path to checkpoint to resume training from (e.g., runs/step1/ckpt_epoch5.pth)")
     args = p.parse_args()
     if args.d_ff is None:
         args.d_ff = args.d_model * 4
@@ -1232,16 +1239,37 @@ def main():
     best_val_loss = float("inf")
     patience_counter = 0
     best_model_state = None
+    start_epoch = 1
+
+    # Resume from checkpoint if specified
+    if args.resume and os.path.exists(args.resume):
+        print(f"\n[Resume] Loading checkpoint from {args.resume}")
+        checkpoint = torch.load(args.resume, map_location=device)
+        model.load_state_dict(checkpoint["model_state"])
+        optimizer.load_state_dict(checkpoint["optim_state"])
+        scaler.load_state_dict(checkpoint["scaler_state"])
+        scheduler.load_state_dict(checkpoint["scheduler_state"])
+        best_val_loss = checkpoint.get("best_val_loss", float("inf"))
+        start_epoch = checkpoint.get("epoch", 0) + 1
+        print(f"[Resume] Resuming from epoch {start_epoch}, best_val_loss={best_val_loss:.4f}")
+        # Load history if exists
+        history_path = os.path.join(args.out_dir, "training_history.json")
+        if os.path.exists(history_path):
+            with open(history_path, "r") as f:
+                history = json.load(f)
+            print(f"[Resume] Loaded training history ({len(history.get('train_loss', []))} epochs)")
+    elif args.resume:
+        print(f"WARNING: Checkpoint {args.resume} not found, starting fresh.")
 
     # training loop
-    history = {"train_loss": [], "val_loss": [], "val_exact": [], "val_token_acc": [], "task_accuracy": [], "lr": [], "train_exact": [], "train_val_gap": []}
+    history = history if args.resume and os.path.exists(args.resume) else {"train_loss": [], "val_loss": [], "val_exact": [], "val_token_acc": [], "task_accuracy": [], "lr": [], "train_exact": [], "train_val_gap": []}
 
     # Initial memory profiling
     if args.profile_memory:
         torch.cuda.reset_peak_memory_stats()
         log_memory("[Initial] ")
 
-    for epoch in range(1, args.epochs+1):
+    for epoch in range(start_epoch, args.epochs+1):
         start = time.time()
         
         # Curriculum learning: progressively increase max sequence length
