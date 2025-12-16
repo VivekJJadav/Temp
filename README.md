@@ -27,6 +27,27 @@ python train_minigpt_4070.py \
   --autoreg_eval
 ```
 
+```bash
+python train_minigpt_4070.py \
+  --data data/add_only/train.pkl \
+  --tokenizer data/add_only/tokenizer.json \
+  --out_dir runs/step1_add_only \
+  --epochs 30 \
+  --lr 1e-4 \
+  --warmup_steps 200 \
+  --patience 10 \
+  --d_model 128 \
+  --n_layers 4 \
+  --n_heads 4 \
+  --batch_size 32 \
+  --accumulation_steps 1 \
+  --label_smoothing 0.0 \
+  --dropout 0.1 \
+  --show_samples \
+  --autoreg_eval
+```
+
+
 ### Key Parameters Explained
 
 | Parameter | Value | Description |
