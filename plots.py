@@ -398,35 +398,82 @@ def plot_memorization_dashboard(history: Dict, out_dir: str,
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 1.05)
     
-    # 3. Train-Val Gap (primary memorization signal)
+    # 3. Autoregressive Generalization Gap (from duplication analysis)
     ax = axes[2]
-    if history.get("val_loss"):
-        gap = [v - t for t, v in zip(history["train_loss"], history["val_loss"])]
-        ax.fill_between(epochs, 0, gap, alpha=0.3, color=COLORS['gap'])
-        ax.plot(epochs, gap, 'o-', color=COLORS['gap'], linewidth=2, markersize=6)
-        ax.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('Gap (Val - Train)')
-    ax.set_title('Generalization Gap', fontweight='bold')
-    ax.grid(True, alpha=0.3)
-    
-    # 4. OOD or Duplication Summary
-    ax = axes[3]
     if dup_results and dup_results.get("bucket_accuracy"):
+        # Show bucket accuracies as bar chart highlighting the gap
         buckets = ["unseen", "1x", "10x+"]
         accuracies = [dup_results["bucket_accuracy"].get(b, 0) or 0 for b in buckets]
         colors = [COLORS['ood'], COLORS['accent'], COLORS['train']]
-        ax.bar(buckets, accuracies, color=colors, edgecolor='black', linewidth=0.5)
-        ax.set_ylabel('Accuracy')
-        ax.set_title('Duplication Sensitivity', fontweight='bold')
-        ax.set_ylim(0, 1.05)
+        bars = ax.bar(buckets, accuracies, color=colors, edgecolor='black', linewidth=0.5)
         
-        mem_score = dup_results.get("memorization_score", 0) or 0
-        ax.annotate(f'Mem. Score: {mem_score:.3f}', 
-                   xy=(0.5, 0.95), xycoords='axes fraction',
-                   fontsize=11, ha='center', fontweight='bold')
+        # Add value labels on bars
+        for bar, acc in zip(bars, accuracies):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                   f'{acc:.2f}', ha='center', fontsize=10)
+        
+        # Draw gap line between unseen and seen
+        acc_unseen = accuracies[0]
+        acc_seen_avg = (accuracies[1] + accuracies[2]) / 2 if len(accuracies) > 2 else accuracies[1]
+        gap = dup_results.get("generalization_gap", acc_seen_avg - acc_unseen)
+        
+        if gap is not None:
+            # Draw horizontal line at unseen accuracy
+            ax.axhline(y=acc_unseen, color=COLORS['gap'], linestyle='--', linewidth=2, alpha=0.7)
+            # Annotate the gap
+            interpretation = "🔴 Large" if gap > 0.3 else "🟡 Moderate" if gap > 0.1 else "🟢 Small"
+            ax.annotate(f'Gap: {gap:.3f} ({interpretation})', 
+                       xy=(0.5, 0.95), xycoords='axes fraction',
+                       fontsize=11, ha='center', fontweight='bold', color=COLORS['gap'])
+        
+        ax.set_ylabel('Accuracy')
+        ax.set_ylim(0, 1.05)
+        ax.set_title('Generalization Gap (Autoregressive)', fontweight='bold')
+        
+        # Add evaluation mode label
+        eval_mode = dup_results.get("evaluation_mode", "unknown")
+        ax.annotate(f'Mode: {eval_mode}', xy=(0.02, 0.02), xycoords='axes fraction',
+                   fontsize=9, ha='left', style='italic', alpha=0.7)
+    else:
+        # Fallback: show message if no duplication results
+        ax.text(0.5, 0.5, 'Run duplication analysis\nfor generalization gap', 
+               ha='center', va='center', fontsize=11, style='italic')
+        ax.set_title('Generalization Gap', fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    
+    # 4. OOD Performance or Memorization Score
+    ax = axes[3]
+    if dup_results and dup_results.get("memorization_score") is not None:
+        # Show memorization score gauge
+        mem_score = dup_results["memorization_score"]
+        gen_gap = dup_results.get("generalization_gap", 0) or 0
+        
+        # Simple bar chart showing both scores
+        metrics = ['Memorization\nScore', 'Generalization\nGap']
+        values = [mem_score, gen_gap]
+        colors_bar = [COLORS['val'] if mem_score > 0.2 else COLORS['accent'] if mem_score > 0.05 else COLORS['ood'],
+                     COLORS['gap']]
+        
+        bars = ax.bar(metrics, values, color=colors_bar, edgecolor='black', linewidth=0.5)
+        for bar, val in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                   f'{val:.3f}', ha='center', fontsize=10, fontweight='bold')
+        
+        ax.set_ylabel('Score')
+        ax.set_title('Memorization Metrics (AR)', fontweight='bold')
+        ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+        
+        # Interpretation
+        if mem_score > 0.2:
+            interp = "🔴 High memorization"
+        elif mem_score > 0.05:
+            interp = "🟡 Moderate"
+        else:
+            interp = "🟢 Good generalization"
+        ax.annotate(interp, xy=(0.5, 0.02), xycoords='axes fraction',
+                   fontsize=10, ha='center', fontweight='bold')
     elif ood_summary:
-        categories = sorted(ood_summary.keys())[:6]  # Limit to 6
+        categories = sorted(ood_summary.keys())[:6]
         accuracies = [ood_summary[c].get("exact_match", 0) for c in categories]
         ax.bar(range(len(categories)), accuracies, color=COLORS['ood'])
         ax.set_xticks(range(len(categories)))
@@ -436,7 +483,7 @@ def plot_memorization_dashboard(history: Dict, out_dir: str,
         ax.set_ylim(0, 1.05)
     else:
         ax.text(0.5, 0.5, 'No OOD/Duplication data', ha='center', va='center', fontsize=12)
-        ax.set_title('OOD/Duplication Analysis', fontweight='bold')
+        ax.set_title('Additional Metrics', fontweight='bold')
     ax.grid(True, alpha=0.3)
     
     plt.suptitle('Memorization Analysis Dashboard', fontsize=16, fontweight='bold', y=1.02)

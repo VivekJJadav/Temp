@@ -7,11 +7,18 @@ import json
 import random
 import os
 
-def generate_add_sample(max_digits=2):
-    """Generate a single addition sample with 1-2 digit numbers."""
-    max_val = 10 ** max_digits - 1
-    a = random.randint(0, max_val)
-    b = random.randint(0, max_val)
+def generate_add_sample(min_val=0, max_val=99):
+    """Generate a single addition sample with numbers in [min_val, max_val]."""
+    a = random.randint(min_val, max_val)
+    b = random.randint(min_val, max_val)
+    result = a + b
+    return f"[add] {a} + {b} | {result}"
+
+
+def generate_add_sample_ood(min_val=100, max_val=999):
+    """Generate OOD addition sample with larger numbers (for val set)."""
+    a = random.randint(min_val, max_val)
+    b = random.randint(min_val, max_val)
     result = a + b
     return f"[add] {a} + {b} | {result}"
 
@@ -24,40 +31,51 @@ def main():
     # Target sizes
     n_train = 5000
     n_val = 500
-    n_total = n_train + n_val
     
-    print(f"Generating {n_train} training + {n_val} validation samples (ZERO overlap)...")
+    print("=" * 60)
+    print("GENERATING ADD-ONLY DATASET (OOD VALIDATION)")
+    print("=" * 60)
+    print(f"Training:   {n_train} samples, numbers in [0, 99] (1-2 digit)")
+    print(f"Validation: {n_val} samples, numbers in [100, 999] (3 digit) <- OOD!")
+    print("=" * 60)
     
-    # Generate unique samples to avoid ANY overlap between train and val
-    unique_samples = set()
-    max_attempts = n_total * 10  # Prevent infinite loop
+    # Generate TRAINING samples (1-2 digit numbers: 0-99)
+    print(f"\nGenerating {n_train} training samples (0-99 range)...")
+    train_unique = set()
+    max_attempts = n_train * 10
     attempts = 0
-    
-    while len(unique_samples) < n_total and attempts < max_attempts:
-        sample = generate_add_sample(max_digits=2)
-        unique_samples.add(sample)
+    while len(train_unique) < n_train and attempts < max_attempts:
+        sample = generate_add_sample(min_val=0, max_val=99)
+        train_unique.add(sample)
         attempts += 1
+    train_samples = list(train_unique)
+    random.shuffle(train_samples)
     
-    if len(unique_samples) < n_total:
-        print(f"WARNING: Could only generate {len(unique_samples)} unique samples")
+    # Generate VALIDATION samples (3 digit numbers: 100-999) <- OOD!
+    # This tests TRUE generalization: can the model add numbers it never saw?
+    print(f"Generating {n_val} OOD validation samples (100-999 range)...")
+    val_unique = set()
+    attempts = 0
+    while len(val_unique) < n_val and attempts < max_attempts:
+        sample = generate_add_sample_ood(min_val=100, max_val=999)
+        val_unique.add(sample)
+        attempts += 1
+    val_samples = list(val_unique)
+    random.shuffle(val_samples)
     
-    # Convert to list and shuffle
-    all_samples = list(unique_samples)
-    random.shuffle(all_samples)
-    
-    # Split into train and val (ZERO overlap guaranteed)
-    train_samples = all_samples[:n_train]
-    val_samples = all_samples[n_train:n_train + n_val]
-    
-    # Verify no overlap
+    # Verify no overlap (should be trivially true since ranges don't overlap)
     train_set = set(train_samples)
     val_set = set(val_samples)
     overlap = train_set & val_set
-    print(f"Train unique: {len(train_set)}, Val unique: {len(val_set)}, Overlap: {len(overlap)}")
+    print(f"\nTrain: {len(train_set)}, Val: {len(val_set)}, Overlap: {len(overlap)}")
     assert len(overlap) == 0, "BUG: Train and val sets should not overlap!"
     
-    print("Sample examples:")
-    for s in train_samples[:5]:
+    print("\nSample TRAIN examples (1-2 digit):")
+    for s in train_samples[:3]:
+        print(f"  {s}")
+    
+    print("\nSample VAL examples (3 digit - OOD):")
+    for s in val_samples[:3]:
         print(f"  {s}")
     
     # Build tokenizer from training data only

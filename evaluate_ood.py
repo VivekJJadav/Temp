@@ -298,89 +298,148 @@ def get_frequency_bucket(freq: int) -> str:
         return None  # Skip intermediate frequencies (2-9)
 
 
+def generate_autoregressive_local(model, prompt_ids: List[int], itos: dict, 
+                                   max_new_tokens: int = 50, device: torch.device = None) -> Tuple[List[int], str]:
+    """
+    Generate tokens autoregressively from a prompt (greedy decoding).
+    
+    Args:
+        model: The MiniGPT model
+        prompt_ids: List of token IDs for the prompt (input up to and including "|")
+        itos: ID to string mapping
+        max_new_tokens: Maximum tokens to generate
+        device: Device to run on
+    
+    Returns:
+        Tuple of (generated_ids, generated_string)
+    """
+    model.eval()
+    
+    # Start with prompt
+    generated = list(prompt_ids)
+    
+    for _ in range(max_new_tokens):
+        # Prepare input (truncate if too long for model)
+        input_ids = torch.tensor([generated], dtype=torch.long, device=device)
+        if input_ids.shape[1] > model.max_len:
+            input_ids = input_ids[:, -model.max_len:]
+        
+        # Forward pass
+        with autocast('cuda'):
+            logits = model(input_ids)  # (1, seq, vocab)
+        next_token_logits = logits[0, -1, :]  # (vocab,)
+        
+        # Greedy decoding
+        next_token = next_token_logits.argmax().item()
+        generated.append(next_token)
+        
+        # Stopping conditions
+        next_char = itos.get(next_token, "")
+        if next_char == "\n":
+            break
+        # Stop if we generate another "|" (unlikely but possible)
+        if next_char == "|" and len(generated) > len(prompt_ids) + 5:
+            break
+    
+    # Return only the generated part (after prompt)
+    generated_ids = generated[len(prompt_ids):]
+    generated_str = "".join([itos.get(t, "") for t in generated_ids])
+    return generated_ids, generated_str
+
+
+def extract_prompt_and_target_local(raw: str, stoi: dict) -> Tuple[List[int], str]:
+    """
+    Split raw example into prompt (input) and target (output).
+    Returns prompt_ids (up to and including " | ") and target string.
+    """
+    if " | " not in raw:
+        return [], ""
+    
+    parts = raw.split(" | ", 1)
+    prompt = parts[0] + " | "
+    target = parts[1] if len(parts) > 1 else ""
+    
+    prompt_ids = [stoi.get(ch, stoi.get("<unk>", 1)) for ch in prompt]
+    return prompt_ids, target
+
+
 @torch.no_grad()
 def evaluate_duplication_sensitivity(model, dataloader, device, stoi, itos, pad_id, vocab_size, max_len) -> Dict:
-    """Evaluate model with duplication sensitivity analysis."""
+    """
+    Evaluate model with duplication sensitivity analysis using AUTOREGRESSIVE generation.
+    
+    This gives a realistic measure of generalization - the model generates outputs
+    token-by-token just like at inference time, without seeing the ground truth.
+    """
     model.eval()
     
     # Overall metrics
-    total_loss = 0.0
-    total_tokens = 0
     exact_matches = 0
     total_examples = 0
     
     # Per-bucket tracking
     bucket_correct = defaultdict(int)
     bucket_total = defaultdict(int)
-    bucket_loss = defaultdict(float)
-    bucket_tokens = defaultdict(int)
+    
+    # Edit distance tracking for more granular analysis
+    bucket_edit_distances = defaultdict(list)
     
     # Sample predictions per bucket
     bucket_samples = defaultdict(list)
     
-    for padded, raws, freqs in tqdm(dataloader, desc="Evaluating duplication sensitivity"):
-        padded = padded.to(device)
-        input_ids = padded[:, :-1]
-        target_ids = padded[:, 1:]
-        
-        with autocast('cuda'):
-            logits = model(input_ids)
-            loss = F.cross_entropy(
-                logits.view(-1, vocab_size),
-                target_ids.view(-1),
-                ignore_index=pad_id,
-                reduction='none'
-            ).view(input_ids.shape[0], -1)
-        
-        preds = logits.argmax(dim=-1).cpu().tolist()
-        targets = target_ids.cpu().tolist()
-        
-        for i, (pred_ids, target_ids_list, raw, freq) in enumerate(zip(preds, targets, raws, freqs)):
+    # Process examples one by one (autoregressive generation is per-example)
+    for padded, raws, freqs in tqdm(dataloader, desc="Evaluating (autoregressive)"):
+        for i, (raw, freq) in enumerate(zip(raws, freqs)):
             bucket = get_frequency_bucket(freq)
             if bucket is None:  # Skip intermediate frequencies
                 continue
+            
+            # Extract prompt and target
+            prompt_ids, target_str = extract_prompt_and_target_local(raw, stoi)
+            if not prompt_ids or not target_str:
+                continue
+            
             bucket_total[bucket] += 1
             total_examples += 1
             
-            # Compute per-example loss
-            example_loss = loss[i]
-            mask = target_ids[i] != pad_id
-            valid_loss = example_loss[mask].mean().item() if mask.sum() > 0 else 0.0
-            bucket_loss[bucket] += valid_loss
-            bucket_tokens[bucket] += mask.sum().item()
-            total_loss += valid_loss
-            total_tokens += mask.sum().item()
+            # Generate autoregressively
+            generated_ids, generated_str = generate_autoregressive_local(
+                model, prompt_ids, itos,
+                max_new_tokens=len(target_str) + 10,  # Give some buffer
+                device=device
+            )
             
-            # Compare predicted vs target tokens
-            pred_tokens = [t for t in pred_ids if t != pad_id]
-            target_tokens = [t for t in target_ids_list if t != pad_id]
-            
-            is_exact = (pred_tokens == target_tokens)
+            # Compare generated vs target
+            is_exact = (generated_str.strip() == target_str.strip())
             if is_exact:
                 exact_matches += 1
                 bucket_correct[bucket] += 1
             
+            # Compute edit distance for more granular tracking
+            edit_dist = levenshtein_distance_simple(generated_str, target_str)
+            bucket_edit_distances[bucket].append(edit_dist)
+            
             # Store samples per bucket
             if len(bucket_samples[bucket]) < 3:
-                expected = extract_expected_output(raw)
                 bucket_samples[bucket].append({
                     "raw": raw[:80] + "..." if len(raw) > 80 else raw,
                     "frequency": freq,
-                    "predicted": decode_ids_to_text(pred_tokens[-30:], itos),
-                    "expected": expected[:30] if expected else "N/A",
-                    "correct": is_exact
+                    "predicted": generated_str[:30],
+                    "expected": target_str[:30],
+                    "correct": is_exact,
+                    "edit_distance": edit_dist
                 })
     
     # Compute per-bucket accuracy
     bucket_accuracy = {}
-    bucket_avg_loss = {}
+    bucket_avg_edit_dist = {}
     for bucket in ["unseen", "1x", "10x+"]:
         if bucket_total[bucket] > 0:
             bucket_accuracy[bucket] = bucket_correct[bucket] / bucket_total[bucket]
-            bucket_avg_loss[bucket] = bucket_loss[bucket] / bucket_total[bucket]
+            bucket_avg_edit_dist[bucket] = sum(bucket_edit_distances[bucket]) / len(bucket_edit_distances[bucket])
         else:
             bucket_accuracy[bucket] = None
-            bucket_avg_loss[bucket] = None
+            bucket_avg_edit_dist[bucket] = None
     
     # Compute memorization score: (accuracy on 10x+) - (accuracy on unseen)
     # Higher = more memorization, Lower/Negative = better generalization
@@ -393,16 +452,37 @@ def evaluate_duplication_sensitivity(model, dataloader, device, stoi, itos, pad_
     generalization_gap = acc_seen - acc_unseen if acc_unseen else None
     
     return {
-        "overall_loss": total_loss / total_examples if total_examples > 0 else 0,
         "overall_exact_match": exact_matches / total_examples if total_examples > 0 else 0,
         "total_examples": total_examples,
         "bucket_accuracy": bucket_accuracy,
-        "bucket_loss": bucket_avg_loss,
+        "bucket_avg_edit_distance": bucket_avg_edit_dist,
         "bucket_counts": dict(bucket_total),
         "bucket_samples": dict(bucket_samples),
         "memorization_score": memorization_score,
-        "generalization_gap": generalization_gap
+        "generalization_gap": generalization_gap,
+        "evaluation_mode": "autoregressive"  # Flag to indicate this is true AR eval
     }
+
+
+def levenshtein_distance_simple(s1: str, s2: str) -> int:
+    """Compute Levenshtein (edit) distance between two strings."""
+    if len(s1) < len(s2):
+        return levenshtein_distance_simple(s2, s1)
+    
+    if len(s2) == 0:
+        return len(s1)
+    
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+    
+    return previous_row[-1]
 
 
 # ---------- Evaluation ----------
@@ -634,25 +714,25 @@ def run_duplication_evaluation(args, model, device, stoi, itos, pad_id, vocab_si
     print("📊 RESULTS BY FREQUENCY BUCKET")
     print("=" * 70)
     
-    print(f"\n{'Bucket':<12} {'Count':<10} {'Accuracy':<12} {'Loss':<10}")
-    print("-" * 44)
+    print(f"\n{'Bucket':<12} {'Count':<10} {'Accuracy':<12} {'Avg EditDist':<12}")
+    print("-" * 46)
     
     for bucket in ["unseen", "1x", "10x+"]:
         count = results['bucket_counts'].get(bucket, 0)
         acc = results['bucket_accuracy'].get(bucket)
-        loss = results['bucket_loss'].get(bucket)
+        edit_dist = results['bucket_avg_edit_distance'].get(bucket)
         
         acc_str = f"{acc*100:.2f}%" if acc is not None else "N/A"
-        loss_str = f"{loss:.4f}" if loss is not None else "N/A"
+        edit_str = f"{edit_dist:.2f}" if edit_dist is not None else "N/A"
         
-        print(f"{bucket:<12} {count:<10} {acc_str:<12} {loss_str:<10}")
+        print(f"{bucket:<12} {count:<10} {acc_str:<12} {edit_str:<12}")
     
     print("\n" + "=" * 70)
-    print("📈 KEY METRICS")
+    print("📈 KEY METRICS (Autoregressive Evaluation)")
     print("=" * 70)
     
-    print(f"\n   Overall Exact Match: {results['overall_exact_match']*100:.2f}%")
-    print(f"   Overall Loss: {results['overall_loss']:.4f}")
+    print(f"\n   Evaluation Mode: {results.get('evaluation_mode', 'teacher-forced')}")
+    print(f"   Overall Exact Match: {results['overall_exact_match']*100:.2f}%")
     
     if results['memorization_score'] is not None:
         score = results['memorization_score']
@@ -669,7 +749,7 @@ def run_duplication_evaluation(args, model, device, stoi, itos, pad_id, vocab_si
     # Show sample predictions per bucket
     if args.show_samples:
         print("\n" + "=" * 70)
-        print("🔎 SAMPLE PREDICTIONS BY BUCKET")
+        print("🔎 SAMPLE PREDICTIONS BY BUCKET (Autoregressive)")
         print("=" * 70)
         
         for bucket in ["unseen", "1x", "10x+"]:
@@ -678,7 +758,8 @@ def run_duplication_evaluation(args, model, device, stoi, itos, pad_id, vocab_si
                 print(f"\n📁 {bucket.upper()} bucket:")
                 for s in samples:
                     status = "✓" if s['correct'] else "✗"
-                    print(f"   {status} [freq={s['frequency']}] {s['raw']}")
+                    edit_info = f"edit_dist={s.get('edit_distance', 'N/A')}"
+                    print(f"   {status} [freq={s['frequency']}, {edit_info}] {s['raw']}")
                     print(f"      Expected: {s['expected']}")
                     print(f"      Got: {s['predicted']}")
     
@@ -689,11 +770,11 @@ def run_duplication_evaluation(args, model, device, stoi, itos, pad_id, vocab_si
         "train_data": args.train_data,
         "eval_data": args.eval_data,
         "model_config": saved_args,
+        "evaluation_mode": results.get('evaluation_mode', 'autoregressive'),
         "overall_exact_match": results['overall_exact_match'],
-        "overall_loss": results['overall_loss'],
         "total_examples": results['total_examples'],
         "bucket_accuracy": results['bucket_accuracy'],
-        "bucket_loss": results['bucket_loss'],
+        "bucket_avg_edit_distance": results.get('bucket_avg_edit_distance', {}),
         "bucket_counts": results['bucket_counts'],
         "memorization_score": results['memorization_score'],
         "generalization_gap": results['generalization_gap'],

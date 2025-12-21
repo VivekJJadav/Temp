@@ -539,6 +539,12 @@ def collate_fn(batch:List[dict], pad_id:int, max_len:int, sep_token_id:int = Non
     """
     Collate function that also creates a loss mask.
     
+    Uses RIGHT PADDING (sequences left-aligned, padding on right).
+    This is better for causal attention because:
+    - Real tokens only attend to real tokens (padding is in the "future")
+    - Causal mask naturally prevents attending to padding
+    - No extra padding mask needed in attention
+    
     The loss mask is 1.0 for output tokens (after separator "|") and 0.0 for input tokens.
     This ensures the model is only trained to predict the output, not the input.
     
@@ -563,37 +569,35 @@ def collate_fn(batch:List[dict], pad_id:int, max_len:int, sep_token_id:int = Non
     loss_mask = torch.zeros((len(batch), max_batch_len - 1), dtype=torch.float32)
     
     for i, ids in enumerate(batch_ids):
-        seq = ids[-max_batch_len:]  # truncate if needed
-        start_pos = max_batch_len - len(seq)  # right-align offset
-        padded[i, start_pos:] = seq
+        # RIGHT PADDING: sequence starts at position 0, padding fills the rest
+        seq = ids[:max_batch_len]  # truncate from the end if needed
+        seq_len = len(seq)
+        padded[i, :seq_len] = seq  # left-aligned
         
         # Find separator position and create mask
         if sep_token_id is not None:
-            # Find separator in the UNPADDED sequence (seq), then convert to padded coordinates
+            # Find separator in the sequence
             sep_positions = (seq == sep_token_id).nonzero(as_tuple=True)[0]
             if len(sep_positions) > 0:
-                # sep_idx is the index in 'seq' (0-based within the unpadded portion)
+                # sep_idx is the index of the separator
                 sep_idx = sep_positions[0].item()
-                # output_start is the first OUTPUT token position in PADDED coordinates
-                # Output starts AFTER the separator, so: start_pos + sep_idx + 1
-                output_start = start_pos + sep_idx + 1
+                # output_start is the first OUTPUT token position (after separator)
+                output_start = sep_idx + 1
                 
                 # loss_mask[t] = 1.0 means we compute loss for predicting padded[t+1]
                 # We want loss when target position (t+1) >= output_start AND not padding
                 for t in range(max_batch_len - 1):
                     target_pos = t + 1  # the token we're predicting
-                    if target_pos >= output_start and padded[i, target_pos] != pad_id:
+                    if target_pos >= output_start and target_pos < seq_len:
                         loss_mask[i, t] = 1.0
             else:
                 # No separator found, compute loss on all non-pad tokens (fallback)
-                for t in range(max_batch_len - 1):
-                    if padded[i, t + 1] != pad_id:
-                        loss_mask[i, t] = 1.0
+                for t in range(seq_len - 1):
+                    loss_mask[i, t] = 1.0
         else:
             # No separator masking, compute loss on all non-pad tokens
-            for t in range(max_batch_len - 1):
-                if padded[i, t + 1] != pad_id:
-                    loss_mask[i, t] = 1.0
+            for t in range(seq_len - 1):
+                loss_mask[i, t] = 1.0
     
     raws = [b["raw"] for b in batch]
     return padded, raws, loss_mask
@@ -1260,9 +1264,15 @@ def main():
     print(f"Scheduler: {warmup_steps} warmup steps, {total_steps} total steps")
 
     # Early stopping state
+    # TF-based tracking (for diagnostics)
     best_val_loss = float("inf")
+    best_TF_model_state = None
+    
+    # AR-based tracking (ground truth for actual performance)
+    best_AR_edit_dist = float("inf")  # Lower is better
+    best_AR_model_state = None
+    
     patience_counter = 0
-    best_model_state = None
     start_epoch = 1
 
     # Resume from checkpoint if specified
@@ -1274,8 +1284,9 @@ def main():
         scaler.load_state_dict(checkpoint["scaler_state"])
         scheduler.load_state_dict(checkpoint["scheduler_state"])
         best_val_loss = checkpoint.get("best_val_loss", float("inf"))
+        best_AR_edit_dist = checkpoint.get("best_AR_edit_dist", float("inf"))
         start_epoch = checkpoint.get("epoch", 0) + 1
-        print(f"[Resume] Resuming from epoch {start_epoch}, best_val_loss={best_val_loss:.4f}")
+        print(f"[Resume] Resuming from epoch {start_epoch}, best_TF_loss={best_val_loss:.4f}, best_AR_edit={best_AR_edit_dist:.4f}")
         # Load history if exists
         history_path = os.path.join(args.out_dir, "training_history.json")
         if os.path.exists(history_path):
@@ -1392,24 +1403,24 @@ def main():
             print("  📊 CORE METRICS")
             print(f"  {'─'*40}")
             print(f"  {'Train Loss:':<20} {train_loss:.4f}")
-            print(f"  {'Val Loss:':<20} {val_loss:.4f}")
+            print(f"  {'Val Loss (TF-NLL):':<20} {val_loss:.4f}  [diagnostic only]")
             print(f"  {'Learning Rate:':<20} {current_lr:.2e}")
             print()
             
-            # Teacher-Forced Evaluation
-            print("  📝 TEACHER-FORCED (Val)")
+            # Teacher-Forced Evaluation (DIAGNOSTIC ONLY)
+            print("  📝 TEACHER-FORCED (diagnostic, not performance)")
             print(f"  {'─'*40}")
-            print(f"  {'Exact Match:':<20} {val_exact:.4f}  {'✓' if val_exact > 0.5 else '✗'}")
-            print(f"  {'Token Accuracy:':<20} {token_acc:.4f}")
+            print(f"  {'TF-SeqMatch:':<20} {val_exact:.4f}")
+            print(f"  {'TF-TokenAcc:':<20} {token_acc:.4f}")
             print()
             
             # Autoregressive Evaluation (if enabled)
             if args.autoreg_eval and autoreg_exact is not None:
-                print("  🔄 AUTOREGRESSIVE (Val)")
+                print("  🔄 AUTOREGRESSIVE (GROUND TRUTH)")
                 print(f"  {'─'*40}")
-                print(f"  {'Exact Match:':<20} {autoreg_exact:.4f}  {'✓' if autoreg_exact > 0.1 else '✗'}")
-                print(f"  {'Token Accuracy:':<20} {autoreg_token_acc:.4f}")
-                print(f"  {'Edit Distance:':<20} {autoreg_edit_dist:.4f}")
+                print(f"  {'AR-ExactMatch:':<20} {autoreg_exact:.4f}  {'✓' if autoreg_exact > 0.1 else '✗'}")
+                print(f"  {'AR-TokenAcc:':<20} {autoreg_token_acc:.4f}")
+                print(f"  {'AR-EditDist:':<20} {autoreg_edit_dist:.4f}  [← EARLY STOP METRIC]")
                 print()
             
             # Memorization Check (if enabled)
@@ -1441,24 +1452,50 @@ def main():
             print(f"{'='*60}")
             print()
             
-            # Early stopping check
-            if val_loss < best_val_loss - args.min_delta:
-                best_val_loss = val_loss
-                patience_counter = 0
-                best_model_state = model.state_dict().copy()
-                print(f"[Epoch {epoch}] New best val loss: {val_loss:.4f}")
+            # ============ EARLY STOPPING LOGIC ============
+            # When autoreg_eval is enabled, use AR edit distance (ground truth)
+            # Otherwise fall back to TF loss (diagnostic mode)
+            
+            if args.autoreg_eval and autoreg_edit_dist is not None:
+                # AR-based early stopping (CORRECT - measures actual task learning)
+                if autoreg_edit_dist < best_AR_edit_dist - args.min_delta:
+                    best_AR_edit_dist = autoreg_edit_dist
+                    patience_counter = 0
+                    best_AR_model_state = model.state_dict().copy()
+                    print(f"[Epoch {epoch}] 🎯 New best AR edit distance: {autoreg_edit_dist:.4f}")
+                else:
+                    patience_counter += 1
+                    print(f"[Epoch {epoch}] No AR improvement. Patience: {patience_counter}/{args.patience}")
             else:
-                patience_counter += 1
-                print(f"[Epoch {epoch}] No improvement. Patience: {patience_counter}/{args.patience}")
+                # TF-based early stopping (fallback when AR eval disabled)
+                if val_loss < best_val_loss - args.min_delta:
+                    best_val_loss = val_loss
+                    patience_counter = 0
+                    best_TF_model_state = model.state_dict().copy()
+                    print(f"[Epoch {epoch}] New best TF loss: {val_loss:.4f} (⚠️ diagnostic only)")
+                else:
+                    patience_counter += 1
+                    print(f"[Epoch {epoch}] No TF improvement. Patience: {patience_counter}/{args.patience}")
+            
+            # Also track TF best independently (for debugging)
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_TF_model_state = model.state_dict().copy()
                 
-                if patience_counter >= args.patience:
+            if patience_counter >= args.patience:
+                if args.autoreg_eval:
                     print(f"\nEarly stopping triggered after {epoch} epochs!")
-                    print(f"Best validation loss: {best_val_loss:.4f}")
-                    # Restore best model
-                    if best_model_state is not None:
-                        model.load_state_dict(best_model_state)
-                        print("Restored best model weights.")
-                    break
+                    print(f"Best AR edit distance: {best_AR_edit_dist:.4f}")
+                    if best_AR_model_state is not None:
+                        model.load_state_dict(best_AR_model_state)
+                        print("Restored best AR model weights.")
+                else:
+                    print(f"\nEarly stopping triggered after {epoch} epochs!")
+                    print(f"Best TF loss: {best_val_loss:.4f} (⚠️ TF metric, consider enabling --autoreg_eval)")
+                    if best_TF_model_state is not None:
+                        model.load_state_dict(best_TF_model_state)
+                        print("Restored best TF model weights.")
+                break
 
         # save checkpoint
         if epoch % args.save_every == 0:
@@ -1469,17 +1506,33 @@ def main():
                 "scaler_state": scaler.state_dict(),
                 "scheduler_state": scheduler.state_dict(),
                 "best_val_loss": best_val_loss,
+                "best_AR_edit_dist": best_AR_edit_dist,
                 "args": vars(args)
             }
             cp_path = os.path.join(args.out_dir, f"ckpt_epoch{epoch}.pth")
             torch.save(cp, cp_path)
             print(f"Saved checkpoint: {cp_path}")
 
-    # Save best model separately
-    if best_model_state is not None:
+    # Save best models separately (DUAL CHECKPOINT SYSTEM)
+    # 1. Best TF model (for debugging/diagnostics)
+    if best_TF_model_state is not None:
+        best_TF_path = os.path.join(args.out_dir, "best_TF.pth")
+        torch.save({"model_state": best_TF_model_state, "val_loss": best_val_loss, "metric": "TF_loss", "args": vars(args)}, best_TF_path)
+        print(f"Saved best TF model (diagnostic): {best_TF_path}")
+    
+    # 2. Best AR model (ACTUAL PERFORMANCE - use this one!)
+    if best_AR_model_state is not None:
+        best_AR_path = os.path.join(args.out_dir, "best_AR.pth")
+        torch.save({"model_state": best_AR_model_state, "AR_edit_dist": best_AR_edit_dist, "metric": "AR_edit_distance", "args": vars(args)}, best_AR_path)
+        print(f"Saved best AR model (ground truth): {best_AR_path} ⭐")
+        # Also save as best_model.pth for backward compatibility
         best_path = os.path.join(args.out_dir, "best_model.pth")
-        torch.save({"model_state": best_model_state, "val_loss": best_val_loss, "args": vars(args)}, best_path)
-        print(f"Saved best model: {best_path}")
+        torch.save({"model_state": best_AR_model_state, "AR_edit_dist": best_AR_edit_dist, "metric": "AR_edit_distance", "args": vars(args)}, best_path)
+    elif best_TF_model_state is not None:
+        # Fallback: if no AR model, use TF model (with warning)
+        best_path = os.path.join(args.out_dir, "best_model.pth")
+        torch.save({"model_state": best_TF_model_state, "val_loss": best_val_loss, "metric": "TF_loss", "args": vars(args)}, best_path)
+        print(f"⚠️ Saved best TF model as best_model.pth (enable --autoreg_eval for proper AR checkpoint)")
 
     # final save results
     with open(os.path.join(args.out_dir, "training_history.json"), "w") as f:
