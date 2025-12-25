@@ -1118,6 +1118,7 @@ def parse_args():
     p.add_argument("--weight_decay", type=float, default=0.01)
     p.add_argument("--use_checkpoint", action="store_true", help="use gradient checkpointing in transformer blocks")
     p.add_argument("--save_every", type=int, default=1, help="save checkpoint every N epochs")
+    p.add_argument("--minimal_checkpoints", action="store_true", help="save only model weights (no optimizer/scaler), reduces size ~60-70%% for experiments")
     p.add_argument("--seed", type=int, default=1337)
     # Early stopping arguments
     p.add_argument("--patience", type=int, default=3, help="early stopping patience (epochs without improvement)")
@@ -1554,16 +1555,27 @@ def main():
 
         # save checkpoint
         if epoch % args.save_every == 0:
-            cp = {
-                "epoch": epoch,
-                "model_state": model.state_dict(),
-                "optim_state": optimizer.state_dict(),
-                "scaler_state": scaler.state_dict(),
-                "scheduler_state": scheduler.state_dict(),
-                "best_val_loss": best_val_loss,
-                "best_AR_edit_dist": best_AR_edit_dist,
-                "args": vars(args)
-            }
+            if args.minimal_checkpoints:
+                # Minimal checkpoint for experiments (saves ~60-70% space)
+                cp = {
+                    "epoch": epoch,
+                    "model_state": model.state_dict(),
+                    "best_val_loss": best_val_loss,
+                    "best_AR_edit_dist": best_AR_edit_dist,
+                    "args": vars(args)
+                }
+            else:
+                # Full checkpoint for resumable training
+                cp = {
+                    "epoch": epoch,
+                    "model_state": model.state_dict(),
+                    "optim_state": optimizer.state_dict(),
+                    "scaler_state": scaler.state_dict(),
+                    "scheduler_state": scheduler.state_dict(),
+                    "best_val_loss": best_val_loss,
+                    "best_AR_edit_dist": best_AR_edit_dist,
+                    "args": vars(args)
+                }
             cp_path = os.path.join(args.out_dir, f"ckpt_epoch{epoch}.pth")
             torch.save(cp, cp_path)
             print(f"Saved checkpoint: {cp_path}")
