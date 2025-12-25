@@ -25,6 +25,14 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+# TensorBoard for real-time visualization
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    TENSORBOARD_AVAILABLE = True
+except ImportError:
+    TENSORBOARD_AVAILABLE = False
+    print("TensorBoard not available. Install with: pip install tensorboard")
+
 # Import custom modules for metrics and plotting
 try:
     from metrics import compute_train_exact_match, compute_ngram_overlap, compute_generation_entropy_stats
@@ -35,7 +43,7 @@ except ImportError:
     print("WARNING: metrics.py or plots.py not found. Advanced metrics disabled.")
 
 # ---------- Repro / device ----------
-def set_seed(seed: int, deterministic: bool = False):
+def set_seed(seed: int, deterministic: bool = True):
     """Set random seeds for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
@@ -1299,6 +1307,14 @@ def main():
     # training loop
     history = history if args.resume and os.path.exists(args.resume) else {"train_loss": [], "val_loss": [], "val_exact": [], "val_token_acc": [], "task_accuracy": [], "lr": [], "train_exact": [], "train_val_gap": []}
 
+    # TensorBoard writer for real-time visualization
+    tb_writer = None
+    if TENSORBOARD_AVAILABLE:
+        tb_log_dir = os.path.join(args.out_dir, "tensorboard")
+        tb_writer = SummaryWriter(log_dir=tb_log_dir)
+        print(f"TensorBoard logging to: {tb_log_dir}")
+        print(f"View with: tensorboard --logdir {tb_log_dir}")
+
     # Initial memory profiling
     if args.profile_memory:
         torch.cuda.reset_peak_memory_stats()
@@ -1326,6 +1342,13 @@ def main():
             stats = curriculum_dataset.get_length_stats()
             print(f"[LengthCurriculum] Epoch {epoch}: max_len={new_max_len}, "
                   f"examples={stats['count']}, avg_len={stats['avg_len']:.1f}")
+            
+            # Log curriculum to TensorBoard
+            if tb_writer is not None:
+                tb_writer.add_scalar("Curriculum/max_length", new_max_len, epoch)
+                # Add vertical line marker when curriculum changes
+                if new_count != old_count:
+                    tb_writer.add_scalar("Curriculum/length_change", 1, epoch)
         
         # Task-based curriculum: advance stage based on epoch
         if task_curriculum_dataset is not None:
@@ -1348,6 +1371,12 @@ def main():
                     dataloader = DataLoader(task_curriculum_dataset, batch_size=args.batch_size, shuffle=True,
                                             collate_fn=partial(collate_fn, pad_id=pad_id, max_len=args.max_len, sep_token_id=sep_token_id), 
                                             num_workers=2, pin_memory=True)
+                
+                # Log curriculum stage to TensorBoard with vertical line marker
+                if tb_writer is not None:
+                    tb_writer.add_scalar("Curriculum/task_stage", new_stage, epoch)
+                    tb_writer.add_scalar("Curriculum/stage_change", 1, epoch)  # Marker for vertical line
+                    tb_writer.add_text("Curriculum/stage_description", stats['stage_info']['description'], epoch)
         
         train_loss = train_epoch(model, optimizer, scaler, scheduler, dataloader, device, epoch, args, itos)
         
@@ -1371,8 +1400,10 @@ def main():
             history["task_accuracy"].append(task_accuracy)
             
             # Optional: Autoregressive evaluation (slower but more realistic)
+            # Run every 10 epochs or on the last epoch to save time
             autoreg_exact, autoreg_token_acc, autoreg_edit_dist, autoreg_task_acc = None, None, None, None
-            if args.autoreg_eval:
+            if args.autoreg_eval and (epoch % 10 == 0 or epoch == args.epochs):
+                print(f"  [AR Eval] Running autoregressive evaluation (epoch {epoch})...")
                 autoreg_exact, autoreg_token_acc, autoreg_edit_dist, autoreg_task_acc = evaluate_autoregressive(
                     model, val_loader, device, args, stoi, itos
                 )
@@ -1391,6 +1422,30 @@ def main():
                 history["train_exact"].append(train_em)
                 train_val_gap = train_em - val_exact
                 history["train_val_gap"].append(train_val_gap)
+            
+            # ============ TENSORBOARD LOGGING ============
+            if tb_writer is not None:
+                # Core metrics
+                tb_writer.add_scalar("Loss/train", train_loss, epoch)
+                tb_writer.add_scalar("Loss/val_TF", val_loss, epoch)
+                tb_writer.add_scalar("LearningRate", current_lr, epoch)
+                
+                # Teacher-forced metrics (diagnostic)
+                tb_writer.add_scalar("TF/val_exact_match", val_exact, epoch)
+                tb_writer.add_scalar("TF/val_token_accuracy", token_acc, epoch)
+                
+                # Autoregressive metrics (ground truth) - when available
+                if autoreg_exact is not None:
+                    tb_writer.add_scalar("AR/val_exact_match", autoreg_exact, epoch)
+                    tb_writer.add_scalar("AR/val_token_accuracy", autoreg_token_acc, epoch)
+                    tb_writer.add_scalar("AR/val_edit_distance", autoreg_edit_dist, epoch)
+                
+                # Memorization metrics
+                if train_em is not None:
+                    tb_writer.add_scalar("Memorization/train_exact_match", train_em, epoch)
+                    tb_writer.add_scalar("Memorization/train_val_gap", train_val_gap, epoch)
+                
+                tb_writer.flush()
             
             # ============ STRUCTURED EPOCH SUMMARY ============
             print()
@@ -1556,6 +1611,11 @@ def main():
     if args.profile_memory:
         log_memory("[Final] ")
         print(f"Peak VRAM usage: {torch.cuda.max_memory_allocated() / 1e9:.2f}GB")
+    
+    # Close TensorBoard writer
+    if tb_writer is not None:
+        tb_writer.close()
+        print(f"TensorBoard logs saved to: {os.path.join(args.out_dir, 'tensorboard')}")
 
 if __name__ == "__main__":
     main()
